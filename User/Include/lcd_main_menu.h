@@ -5,9 +5,10 @@
 #include "tim_but_led_pwm.h"
 #include "infrared_receiver.h"
 #include "speaker.h"
-#include "game_2048.h"
+//#include "game_2048.h"
 #include "game_tetris.h"
 #include "snake.h"
+#include "my_uart.h"
 #include <string.h>  // for memset
 
 #define MENU_COUNT sizeof(MENU_ITEMS)/sizeof(MENU_ITEMS[0])

@@ -208,15 +208,17 @@ typedef struct{
     uint8_t tempo;                  // song tempo
     uint16_t wholeNoteLen;          // length of whole note
     uint16_t noteCount;             // count of notes in song
-    uint16_t *freq;                 // array of all notes
-    uint8_t *beats;                 // array of relative duration of notes
+    const uint16_t *freq;           // array of all notes
+    const uint8_t *beats;           // array of relative duration of notes
 } Song;
 extern Song song;
 
 void speakerInit(void);
 void playSong(uint8_t speakerType, uint16_t *curSong, uint8_t* songBeats, uint16_t curNoteCount, uint8_t curTempo);
-void playBackgroundSong(uint8_t speakerType, uint16_t *curSong, uint8_t* songBeats, uint16_t curNoteCount, uint8_t curTempo, uint8_t isCyclick);
-void fillSpeakerMenuBuffer(uint8_t *menuBuffer);
+void playBackgroundSong(uint8_t speakerType, const uint16_t *curSong, const uint8_t* songBeats, uint16_t curNoteCount, uint8_t curTempo, uint8_t isCyclick);
+void fillSpeakerMenuBuffer(void);
+void drawChooseMenu(uint8_t choose);
+uint8_t chooseSpeakerType(void);
 void speakerMenu(void);
 
 #endif

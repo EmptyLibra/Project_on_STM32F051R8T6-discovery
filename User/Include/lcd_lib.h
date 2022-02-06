@@ -13,7 +13,7 @@
 
 //---------------------------------Variables-------------------------------------------------------------
 extern LCD_STRUCT lcdStruct;                                              // struct with main functions and display buffer
-extern uint8_t LIBRARY_SYMBOL[];                                          // library with all symbols in ASCII
+extern const uint8_t LIBRARY_SYMBOL[];                                          // library with all symbols in ASCII
     
 //---------------------------------Functions-------------------------------------------------------------
 //-----init functions--------------------------------------------------------------

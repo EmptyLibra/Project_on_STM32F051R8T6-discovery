@@ -3,7 +3,8 @@
 //### use asart as uart ###
 // PA9  - TX - white wire
 // PA10 - RX - green wire
-uint32_t uart1_IT_RX_flag = 0;
+uint32_t uart1_IT_RX_flag = 0, uart1_IT_TX_flag = 0;
+uint8_t commandByte = 0;
 FIFO_CREATE(my_fifo);              // my FIFO for uart
 //uint8_t uartBuffer[LCD_BUFFER_LENGTH] = {0x00};
 
@@ -11,7 +12,18 @@ void USART1_IRQHandler(){ // interrupts handing
     if(USART_GetITStatus(UART1, USART_IT_RXNE) == SET){
 		USART_ClearITPendingBit(UART1, USART_IT_RXNE);
 		FIFO_PUSH(my_fifo, UART_RECEIVE_DATA());
-        uart1_IT_RX_flag = SET;
+        
+        if(FIFO_COUNT_ELEMENTS(my_fifo) > 2){
+            commandByte = FIFO_POP(my_fifo);
+            if(FIFO_POP(my_fifo) == 0x0D){
+                if(FIFO_POP(my_fifo) == 0x0A){
+                    if(commandByte == 0x89){
+                        GPIO_WriteBit(GPIOC, LD4_PIN, (BitAction)(!GPIO_ReadOutputDataBit(GPIOC, LD4_PIN)));
+                    }
+                }
+            }
+            FIFO_FLUSH(my_fifo);
+        }
 	}
 }
 
@@ -20,20 +32,17 @@ void uartPinsInit(void){
     RCC_AHBPeriphClockCmd(RCC_AHBENR_GPIOAEN, ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2ENR_USART1EN, ENABLE);
     
-    // PA10 - RX in alternative function
+    // PA10 - RX, PA9 - TX in alternative function
     GPIO_InitTypeDef GPIOA_ini;
-    GPIOA_ini.GPIO_Pin = USART1_PIN_RX;
+    GPIOA_ini.GPIO_Pin = USART1_PIN_RX | USART1_PIN_TX;
     GPIOA_ini.GPIO_Mode = GPIO_Mode_AF;
     GPIOA_ini.GPIO_Speed = GPIO_Speed_50MHz;
     GPIOA_ini.GPIO_OType = GPIO_OType_PP;
-    GPIOA_ini.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    GPIO_Init(GPIOA, &GPIOA_ini);
-    
-    // PA9 - TX in alternative function
-    GPIOA_ini.GPIO_Pin = USART1_PIN_TX;
     GPIOA_ini.GPIO_PuPd = GPIO_PuPd_UP;
     GPIO_Init(GPIOA, &GPIOA_ini);
     
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_1);
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_1);
     // usart settings
     NVIC_EnableIRQ(USART1_IRQn);   // enable interrupts
     
@@ -52,20 +61,19 @@ void uartPinsInit(void){
 
 void startUartDataGetting(){
     lcdStruct.clearOrFillDisplay(CLEAR);
-    
-    uint8_t data;
-    UART_SEND_DATA(0xAA);
-    char receiveString[2];
+
     while(1){
-        if(uart1_IT_RX_flag){
-            data = FIFO_POP(my_fifo);
-            UART_SEND_DATA(data);
-            sprintf(receiveString, "%02u", data);
-            LCD_SendByteData(data);
-            //lcdStruct.writeStringToBuffer(uartBuffer, receiveString);
-            //LCD_DrawPageFromBuffer(uartBuffer, PAGE_1);
+        if(FIFO_COUNT_ELEMENTS(my_fifo) > 2){
+            commandByte = FIFO_POP(my_fifo);
+            if(FIFO_POP(my_fifo) == 0x0D){
+                if(FIFO_POP(my_fifo) == 0x0A){
+                    if(commandByte == 0x89){
+                        GPIO_WriteBit(GPIOC, LD4_PIN, (BitAction)(!GPIO_ReadOutputDataBit(GPIOC, LD4_PIN)));
+                    }
+                }
+            }
+            FIFO_FLUSH(my_fifo);
         }
-        
         #ifdef BUTTON_BACK
             if(isButtonPressed(BUTTON_BACK)){
                 lcdStruct.clearOrFillDisplay(CLEAR);

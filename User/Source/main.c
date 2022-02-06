@@ -26,7 +26,7 @@ int main(void)
     speakerInit();                         // init PB12, PB11 as PWM
     ledsPinInit();                         // init leds PC8 and PC9
     IR_init();
-    
+    uartPinsInit();
     //----init LCD-----------------------------------------------
     LCD_Init();                  // init Display
     

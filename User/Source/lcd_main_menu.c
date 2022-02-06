@@ -4,7 +4,8 @@ static char MENU_ITEMS[][11] = {
     "2048     ",
     "Snake    ",
     "Tetris   ",
-    "Speaker  "
+    "Speaker  ",
+    "UART     "
 };
 static int currentItem = 0;
 static uint8_t menuBuffer[LCD_BUFFER_LENGTH] = {0x00};
@@ -89,9 +90,9 @@ void LCD_StartMainMenu(){
             if(isButtonPressed(BUTTON_SELECT)){
                 delay(500000);
                 switch(currentItem){
-                    case 0:
-                        startGame2048();
-                        break;
+//                    case 0:
+//                        startGame2048();
+//                        break;
                     case 1:
                         startSnakeGame();
                         break;
@@ -101,6 +102,9 @@ void LCD_StartMainMenu(){
                     case 3:
                         lcdStruct.clearOrFillDisplay(CLEAR);
                         speakerMenu();
+                        break;
+                    case 4:
+                        startUartDataGetting();
                         break;
                     default: ;
                 }

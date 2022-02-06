@@ -3,7 +3,7 @@
 //-------------variables-----------------------------------------------------
 LCD_STRUCT lcdStruct = { 0x00, 0, 0, LCD_WriteSymbolToBuffer, LCD_WriteStringToBuffer, 
                          LCD_DisplayFullUpdate, 0, LCD_ClearOrFillDisplay};
-uint8_t LIBRARY_SYMBOL[] = 	           // Согласно таблице ASCII
+const uint8_t LIBRARY_SYMBOL[] = 	           // Согласно таблице ASCII
 {
   // 0x00 - пустое знакоместо.
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

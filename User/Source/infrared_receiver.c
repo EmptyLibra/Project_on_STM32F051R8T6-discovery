@@ -19,8 +19,10 @@ void TIM2_IRQHandler(void){
 //    }
     // real work
     if(TIM_GetITStatus(TIM2, TIM_IT_CC3) == SET){
-        if(currDataIndex > 40){
+        if(currDataIndex > 60){
+            IRDataCounter = 0;
             currDataIndex = 0;
+            IRData = 0;
         }
         TIM_ClearITPendingBit(TIM2, TIM_IT_CC3);
         curDataElem = TIM_GetCapture3(TIM2);

@@ -7,14 +7,14 @@ MusicSet musicSet;
 
 // menu
 static int currentItem = 0;
-static char SPEAKER_MENU_ITEMS[][21] = {
+static const char SPEAKER_MENU_ITEMS[][21] = {
     "StarWars - MainTheme",
     "SW - ImperialMarch  ",
     "Bithoven - FurElise ",
     "Pirates of Caribbean",
     "Harry Potter        "
 };
-
+static uint8_t menuBuffer[LCD_BUFFER_LENGTH] = {0x00};
 //
 // play music in system timer
 void SysTick_Handler(){
@@ -78,10 +78,10 @@ void playSong(uint8_t speakerType, uint16_t *curSong, uint8_t* songBeats, uint16
     song.freq = curSong;
     song.beats = songBeats;
     uint16_t i;
-    for(i = 0; i < song.noteCount; i++){
-        song.freq[i] = curSong[i];
-        song.beats[i] = songBeats[i];
-    }
+//    for(i = 0; i < song.noteCount; i++){
+//        song.freq[i] = curSong[i];
+//        song.beats[i] = songBeats[i];
+//    }
     
     // play song
     uint32_t signal_period;
@@ -113,7 +113,7 @@ void playSong(uint8_t speakerType, uint16_t *curSong, uint8_t* songBeats, uint16
     }
 }
 
-void playBackgroundSong(uint8_t speakerType, uint16_t *curSong, uint8_t* songBeats, uint16_t curNoteCount, uint8_t curTempo, uint8_t isCyclick){
+void playBackgroundSong(uint8_t speakerType, const uint16_t *curSong, const uint8_t* songBeats, uint16_t curNoteCount, uint8_t curTempo, uint8_t isCyclick){
     // song init
     song.speakerType = speakerType;
     song.tempo = curTempo;
@@ -121,11 +121,11 @@ void playBackgroundSong(uint8_t speakerType, uint16_t *curSong, uint8_t* songBea
     song.noteCount = curNoteCount;
     song.freq = curSong;
     song.beats = songBeats;
-    uint16_t i;
-    for(i = 0; i < song.noteCount; i++){
-        song.freq[i] = curSong[i];
-        song.beats[i] = songBeats[i];
-    }
+//    uint16_t i;
+//    for(i = 0; i < song.noteCount; i++){
+//        song.freq[i] = curSong[i];
+//        song.beats[i] = songBeats[i];
+//    }
     
     // set settings for music
     musicSet.elapsed_time = 0;
@@ -141,7 +141,7 @@ void playBackgroundSong(uint8_t speakerType, uint16_t *curSong, uint8_t* songBea
 }
 
 //
-void fillSpeakerMenuBuffer(uint8_t *menuBuffer){
+void fillSpeakerMenuBuffer(){
     lcdStruct.byteIndex = 0x00;
     int i;
     for(i = 0; i < SPEAKER_MENU_COUNT; i++){
@@ -149,15 +149,13 @@ void fillSpeakerMenuBuffer(uint8_t *menuBuffer){
         lcdStruct.writeStringToBuffer(menuBuffer, SPEAKER_MENU_ITEMS[i]);
     }
 }
-void drawChooseMenu(uint8_t *menuBuffer, uint8_t choose){
+void drawChooseMenu(uint8_t choose){
     lcdStruct.byteIndex = 2*DISPLAY_WIDTH;
     lcdStruct.writeStringToBuffer(menuBuffer, (choose == 0? ">small   big" : " small  >big"));
     LCD_DrawPageFromBuffer(menuBuffer, PAGE_3);
 }
 
-uint8_t chooseSpeakerType(){
-    uint8_t menuBuffer[LCD_BUFFER_LENGTH] = {0x00};
-    
+uint8_t chooseSpeakerType(){    
     lcdStruct.byteIndex = 0x00;
     lcdStruct.writeStringToBuffer(menuBuffer, "Choose speaker");
     lcdStruct.byteIndex = 2*DISPLAY_WIDTH;
@@ -169,12 +167,12 @@ uint8_t chooseSpeakerType(){
         if(isButtonPressed(BUTTON_LEFT)){
             delay(10000);
             curChoose -= (curChoose == 0 ? 0 : 1);
-            drawChooseMenu(menuBuffer, curChoose);
+            drawChooseMenu(curChoose);
         }
         if(isButtonPressed(BUTTON_RIGHT)){
             delay(10000);
             curChoose += (curChoose == 1 ? 0 : 1);
-            drawChooseMenu(menuBuffer, curChoose);
+            drawChooseMenu(curChoose);
         }
         if(isButtonPressed(BUTTON_SELECT)){
             delay(10000);
@@ -187,35 +185,35 @@ uint8_t chooseSpeakerType(){
 
 void speakerMenu(){
     lcdStruct.clearOrFillDisplay(CLEAR);
+    memset(menuBuffer, 0x00, LCD_BUFFER_LENGTH);
     
     uint8_t curSpeaker = chooseSpeakerType();
     
     /*==================Songs library===================================================*/
     /*-----Star Wars - Main Theme-----*/
-    uint16_t StarWars_MainTheme[]       = {F4, F4, F4, A4_D, F5,    D5_D, D5, C5, A5_D,    F5, D5_D, D5, C5, A5_D,    F5, D5_D, D5, D5_D, C5,    F4, F4, F4, A4_D, F5,    D5_D, D5, C5, A5_D,    F5, D5_D, D5, C5, A5_D,    F5, D5_D, D5, D5_D, C5};
-    uint8_t StarWars_MainTheme_Beats[]  = {21, 21, 21, 128, 128,    21,   21, 21, 128,     64, 21,   21, 21, 128,     64, 21,   21, 21,   128,   21, 21, 21, 128, 128,    21,   21, 21, 128,     64, 21,   21, 21, 128,     64, 21,   21, 21,   128};
+    const uint16_t StarWars_MainTheme[]       = {F4, F4, F4, A4_D, F5,    D5_D, D5, C5, A5_D,    F5, D5_D, D5, C5, A5_D,    F5, D5_D, D5, D5_D, C5,    F4, F4, F4, A4_D, F5,    D5_D, D5, C5, A5_D,    F5, D5_D, D5, C5, A5_D,    F5, D5_D, D5, D5_D, C5};
+    const uint8_t StarWars_MainTheme_Beats[]  = {21, 21, 21, 128, 128,    21,   21, 21, 128,     64, 21,   21, 21, 128,     64, 21,   21, 21,   128,   21, 21, 21, 128, 128,    21,   21, 21, 128,     64, 21,   21, 21, 128,     64, 21,   21, 21,   128};
 
     /*-----Star Wars - The Imperial March------*/
-    uint16_t StarWars_TheImperialMarch[]       = {A4, P,  A4, P,  A4, P,     F4, P, C5, P,  A4, P,     F4, P, C5, P, A4, P,     E5, P,  E5, P,  E5, P,     F5, P, C5, P, A4_B, P,    F4, P, C5, P, A4, P};
-    uint8_t StarWars_TheImperialMarch_Beats[]  = {50, 20, 50, 20, 50, 20,    40, 5, 20, 5,  60, 10,    40, 5, 20, 5, 60, 80,    50, 20, 50, 20, 50, 20,    40, 5, 20, 5, 60,   10,   40, 5, 20, 5, 60, 40};
+    const uint16_t StarWars_TheImperialMarch[]       = {A4, P,  A4, P,  A4, P,     F4, P, C5, P,  A4, P,     F4, P, C5, P, A4, P,     E5, P,  E5, P,  E5, P,     F5, P, C5, P, A4_B, P,    F4, P, C5, P, A4, P};
+    const uint8_t StarWars_TheImperialMarch_Beats[]  = {50, 20, 50, 20, 50, 20,    40, 5, 20, 5,  60, 10,    40, 5, 20, 5, 60, 80,    50, 20, 50, 20, 50, 20,    40, 5, 20, 5, 60,   10,   40, 5, 20, 5, 60, 40};
 
     /*-----Ludwig Van Beethoven - Fur Elise-----*/
-    uint16_t FurElise[]         = {E5, D5_D, E5, D5_D, E5, B4, D5, C5, A4, P,    C4, E4, A4, B4, P,    E4, G4_D, B4, C5,  P,   C4, E5, D5_D, E5, D5_D, E5, B4, D5, C5, A4, P,     C4, E4, A4, B4, P,   C4, C5, B4, A4, P};
-    uint8_t FurElise_Beates[]   = {16, 16,   16, 16,   16, 16, 16, 16, 32, 16,   16, 16, 16, 32, 16,   16, 16,   16, 32, 16,   16, 16, 16,   16, 16,   16, 16, 16, 16, 32, 16,    16, 16, 16, 32, 16,  16, 16, 16, 32, 32};
+    const uint16_t FurElise[]         = {E5, D5_D, E5, D5_D, E5, B4, D5, C5, A4, P,    C4, E4, A4, B4, P,    E4, G4_D, B4, C5,  P,   C4, E5, D5_D, E5, D5_D, E5, B4, D5, C5, A4, P,     C4, E4, A4, B4, P,   C4, C5, B4, A4, P};
+    const uint8_t FurElise_Beates[]   = {16, 16,   16, 16,   16, 16, 16, 16, 32, 16,   16, 16, 16, 32, 16,   16, 16,   16, 32, 16,   16, 16, 16,   16, 16,   16, 16, 16, 16, 32, 16,    16, 16, 16, 32, 16,  16, 16, 16, 32, 32};
     
 //    uint16_t flightOfTheBumblebee[]        = {E6, D6_D, D6, С6_D,   D6, C6, C6, B5,   C6, B5, B5_B, A5,   G5_D, G5, F5_D, F5,    E5, D5_D, D5, С5_D,   D5, C5, C5, B4,   C5, B4, B4_B, A4,   G4_D, G4, F4_D, F4,         E4, D4_D, D4, С4_D,   D4, C4, C4, B3,   E4, D4_D, D4, С4_D,    D4, C4, C4, B3,   E4, D4_D, D4, С4_D,    D4, C4, C4, B3,   E4, D4_D, D4, С4_D,    D4, C4, C4, B3,         E4, D4_D, D4, С4_D,    D4, C4, C4, B3,    C4, С4_D, D4, D4_D,    E4, F4, E4, D4,    E4, D4_D, D4, С4_D,    D4, C4, C4, B3,    C4, С4_D, D4, D4_D,    E4, F4, E4, D4};
 //    uint8_t flightOfTheBumblebee_Beates[]  = {16, 16,   16, 16,     16, 16, 16, 16,   16, 16, 16,   16,   16,   16, 16,   16,    16, 16,   16, 16,     16, 16, 16, 16,   16, 16, 16,   16,   16,   16, 16,   16,         16, 16,   16, 16,     16, 16, 16, 16,   16, 16, 16, 16,        16, 16, 16, 16,   16, 16, 16, 16,        16, 16, 16, 16,   16, 16, 16, 16,        16, 16, 16, 16,         16, 16,   16, 16,      16, 16, 16, 16,    16, 16,   16, 16,      16, 16, 16, 16,    16, 16,   16, 16,      16, 16, 16, 16,    16, 16,   16, 16,      16, 16, 16, 16};
 //    
-    uint16_t pirates[]        = {A3, C4,    D4, D4, D4, E4,    F4, F4, F4, G4,    E4, E4, D4, C4,    C4, D4,  P,  A3, C4,    A3, C4,    D4, D4, D4, E4,    F4, F4, F4, G4,    E4, E4, D4, C4,    D4, P, A3, C4,    D4, D4, D4, E4,    G4, G4, G4, A4,    B4, B4, A4, G4,    A4, D4, P, D4, E4,    F4, F4, G4,    A4, D4, P, D4, E4,    E4, E4, F4, D4,    E4, P};
-    uint8_t pirates_Beates[]  = {32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    32, 64,  32, 32, 32,    32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64,32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    32, 64, 32,32, 32,    64, 64, 64,    32, 64, 32,32, 32,    64, 64, 32, 32,    64, 64};
+    const uint16_t pirates[]        = {A3, C4,    D4, D4, D4, E4,    F4, F4, F4, G4,    E4, E4, D4, C4,    C4, D4,  P,  A3, C4,    A3, C4,    D4, D4, D4, E4,    F4, F4, F4, G4,    E4, E4, D4, C4,    D4, P, A3, C4,    D4, D4, D4, E4,    G4, G4, G4, A4,    B4, B4, A4, G4,    A4, D4, P, D4, E4,    F4, F4, G4,    A4, D4, P, D4, E4,    E4, E4, F4, D4,    E4, P};
+    const uint8_t pirates_Beates[]  = {32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    32, 64,  32, 32, 32,    32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64,32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    32, 64, 32,32, 32,    64, 64, 64,    32, 64, 32,32, 32,    64, 64, 32, 32,    64, 64};
     
     /*-----Harry Potter - Main theme-----*/
-    uint16_t Harry_Potter[]       = {B4,   E5, G5, F5,   E5,   B5,  F5,    E5, G5, F5,  D5,  F5,   B4, P,    B4, E5, G5, F5,   E5, B5,   D6, С6_D,  C6, B5_B,   C6, B5, A5_D,   B4, F5, E5, P};
-    uint8_t Harry_Potter_Beats[]  = {64,   64, 32, 64,   128,  64, 128,    64, 32, 64,  128, 64,   156,64,   64, 64, 32, 64,   128,64,   128,64,    128,64,     64, 32, 64,     128,64, 156,64};
+    const uint16_t Harry_Potter[]       = {B4,   E5, G5, F5,   E5,   B5,  F5,    E5, G5, F5,  D5,  F5,   B4, P,    B4, E5, G5, F5,   E5, B5,   D6, С6_D,  C6, B5_B,   C6, B5, A5_D,   B4, F5, E5, P};
+    const uint8_t Harry_Potter_Beats[]  = {64,   64, 32, 64,   128,  64, 128,    64, 32, 64,  128, 64,   156,64,   64, 64, 32, 64,   128,64,   128,64,    128,64,     64, 32, 64,     128,64, 156,64};
     
         
-    uint8_t menuBuffer[LCD_BUFFER_LENGTH] = {0x00};
-    fillSpeakerMenuBuffer(menuBuffer);
+    fillSpeakerMenuBuffer();
     lcdStruct.displayFullUpdate(menuBuffer);
     
     while(1){
@@ -223,7 +221,7 @@ void speakerMenu(){
             delay(300000);
             currentItem -= (currentItem == 0 ? 0 : 1);
             
-            fillSpeakerMenuBuffer(menuBuffer);
+            fillSpeakerMenuBuffer();
             lcdStruct.displayFullUpdate(menuBuffer);
         }
         
@@ -231,7 +229,7 @@ void speakerMenu(){
             delay(300000);
             currentItem += (currentItem >= SPEAKER_MENU_COUNT-1 ? 0 : 1);
             
-            fillSpeakerMenuBuffer(menuBuffer);
+            fillSpeakerMenuBuffer();
             lcdStruct.displayFullUpdate(menuBuffer);
         }
         
