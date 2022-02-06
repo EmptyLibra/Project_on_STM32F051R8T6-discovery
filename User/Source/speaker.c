@@ -1,9 +1,13 @@
 #include "speaker.h"
-#include "tim_but_led_pwm.h"
 
-// Song settings struct
+/* Play music on selected speaker - small (without amplifier) or big (with amplifier).
+*  Small speaker on PB12, Big speaker on PB11.
+*  Music can be played in the background (playBackgroundSong function) using system timer or 
+*  not in background (playSong), but this stops the MCU work. */
+
+/*===========================Variables==================================*/
 Song song;
-MusicSet musicSet;
+MusicSet musicSet;            // Music settings struct
 
 // menu
 static int currentItem = 0;
@@ -16,8 +20,8 @@ static const char SPEAKER_MENU_ITEMS[][21] = {
 };
 static uint8_t menuBuffer[LCD_BUFFER_LENGTH] = {0x00};
 //
-// play music in system timer
-void SysTick_Handler(){
+/*===========================Functions==================================*/
+void SysTick_Handler(){ // system timer handler
     if(musicSet.noteNumber < song.noteCount){
         // play one note
         if(musicSet.songState != STATE_NOTE_PAUSE && 
@@ -58,36 +62,31 @@ void SysTick_Handler(){
         if(SysTick_Config(48000000/1000)){while(1); /*trap*/}
     }
 }
-void speakerInit(){
-    // Settings for small and big speaker
-    RCC_AHBPeriphClockCmd(RCC_AHBENR_GPIOBEN, ENABLE);
-    GPIO_InitTypeDef GPIOB_ini;
-    GPIOB_ini.GPIO_Pin = SPEAKER_MINI_PIN | SPEAKER_BIG_PIN;
-    GPIOB_ini.GPIO_Mode = GPIO_Mode_OUT;
-    GPIOB_ini.GPIO_Speed = GPIO_Speed_50MHz;   // 2, 10, 50
-    GPIOB_ini.GPIO_OType = GPIO_OType_PP;
-    GPIOB_ini.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    GPIO_Init(GPIOB, &GPIOB_ini);
+void speakerInit(){ // Settings for small and big speaker
+    RCC_AHBPeriphClockCmd(RCC_AHBENR_SPEAKEREN, ENABLE);
+    GPIO_InitTypeDef GPIOx_ini;
+    GPIOx_ini.GPIO_Pin = SPEAKER_MINI_PIN | SPEAKER_BIG_PIN;
+    GPIOx_ini.GPIO_Mode = GPIO_Mode_OUT;
+    GPIOx_ini.GPIO_Speed = GPIO_Speed_50MHz;   // 2, 10, 50
+    GPIOx_ini.GPIO_OType = GPIO_OType_PP;
+    GPIOx_ini.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_Init(SPEAKER_PORT, &GPIOx_ini);
 }
 
-void playSong(uint8_t speakerType, uint16_t *curSong, uint8_t* songBeats, uint16_t curNoteCount, uint8_t curTempo){
+void playSong(uint8_t speakerType, const uint16_t *curSong, const uint8_t* songBeats, uint16_t curNoteCount, uint8_t curTempo){
     // song init
     song.tempo = curTempo;
     song.wholeNoteLen = 240000/song.tempo;
     song.noteCount = curNoteCount;
     song.freq = curSong;
     song.beats = songBeats;
-    uint16_t i;
-//    for(i = 0; i < song.noteCount; i++){
-//        song.freq[i] = curSong[i];
-//        song.beats[i] = songBeats[i];
-//    }
     
     // play song
     uint32_t signal_period;
     uint32_t elapsed_time;
     
     // start song
+    uint16_t i;
     for (i = 0; i < song.noteCount; i++) {
         elapsed_time = 0;
         signal_period = 1000000 / song.freq[i];
@@ -121,11 +120,6 @@ void playBackgroundSong(uint8_t speakerType, const uint16_t *curSong, const uint
     song.noteCount = curNoteCount;
     song.freq = curSong;
     song.beats = songBeats;
-//    uint16_t i;
-//    for(i = 0; i < song.noteCount; i++){
-//        song.freq[i] = curSong[i];
-//        song.beats[i] = songBeats[i];
-//    }
     
     // set settings for music
     musicSet.elapsed_time = 0;
@@ -135,12 +129,11 @@ void playBackgroundSong(uint8_t speakerType, const uint16_t *curSong, const uint
     musicSet.isCyclickSong = isCyclick;
     
     // init system timer
-    if(SysTick_Config(48000000/1000)){ 
-        while(1); // *trap*
-    }
+    if(SysTick_Config(48000000/1000)){ while(1); /*trap*/}
 }
 
 //
+// speaker menu
 void fillSpeakerMenuBuffer(){
     lcdStruct.byteIndex = 0x00;
     int i;
@@ -202,9 +195,10 @@ void speakerMenu(){
     const uint16_t FurElise[]         = {E5, D5_D, E5, D5_D, E5, B4, D5, C5, A4, P,    C4, E4, A4, B4, P,    E4, G4_D, B4, C5,  P,   C4, E5, D5_D, E5, D5_D, E5, B4, D5, C5, A4, P,     C4, E4, A4, B4, P,   C4, C5, B4, A4, P};
     const uint8_t FurElise_Beates[]   = {16, 16,   16, 16,   16, 16, 16, 16, 32, 16,   16, 16, 16, 32, 16,   16, 16,   16, 32, 16,   16, 16, 16,   16, 16,   16, 16, 16, 16, 32, 16,    16, 16, 16, 32, 16,  16, 16, 16, 32, 32};
     
-//    uint16_t flightOfTheBumblebee[]        = {E6, D6_D, D6, С6_D,   D6, C6, C6, B5,   C6, B5, B5_B, A5,   G5_D, G5, F5_D, F5,    E5, D5_D, D5, С5_D,   D5, C5, C5, B4,   C5, B4, B4_B, A4,   G4_D, G4, F4_D, F4,         E4, D4_D, D4, С4_D,   D4, C4, C4, B3,   E4, D4_D, D4, С4_D,    D4, C4, C4, B3,   E4, D4_D, D4, С4_D,    D4, C4, C4, B3,   E4, D4_D, D4, С4_D,    D4, C4, C4, B3,         E4, D4_D, D4, С4_D,    D4, C4, C4, B3,    C4, С4_D, D4, D4_D,    E4, F4, E4, D4,    E4, D4_D, D4, С4_D,    D4, C4, C4, B3,    C4, С4_D, D4, D4_D,    E4, F4, E4, D4};
-//    uint8_t flightOfTheBumblebee_Beates[]  = {16, 16,   16, 16,     16, 16, 16, 16,   16, 16, 16,   16,   16,   16, 16,   16,    16, 16,   16, 16,     16, 16, 16, 16,   16, 16, 16,   16,   16,   16, 16,   16,         16, 16,   16, 16,     16, 16, 16, 16,   16, 16, 16, 16,        16, 16, 16, 16,   16, 16, 16, 16,        16, 16, 16, 16,   16, 16, 16, 16,        16, 16, 16, 16,         16, 16,   16, 16,      16, 16, 16, 16,    16, 16,   16, 16,      16, 16, 16, 16,    16, 16,   16, 16,      16, 16, 16, 16,    16, 16,   16, 16,      16, 16, 16, 16};
-//    
+//    const uint16_t flightOfTheBumblebee[]        = {E6, D6_D, D6, С6_D,   D6, C6, C6, B5,   C6, B5, B5_B, A5,   G5_D, G5, F5_D, F5,    E5, D5_D, D5, С5_D,   D5, C5, C5, B4,   C5, B4, B4_B, A4,   G4_D, G4, F4_D, F4,         E4, D4_D, D4, С4_D,   D4, C4, C4, B3,   E4, D4_D, D4, С4_D,    D4, C4, C4, B3,   E4, D4_D, D4, С4_D,    D4, C4, C4, B3,   E4, D4_D, D4, С4_D,    D4, C4, C4, B3,         E4, D4_D, D4, С4_D,    D4, C4, C4, B3,    C4, С4_D, D4, D4_D,    E4, F4, E4, D4,    E4, D4_D, D4, С4_D,    D4, C4, C4, B3,    C4, С4_D, D4, D4_D,    E4, F4, E4, D4};
+//    const uint8_t flightOfTheBumblebee_Beates[]  = {16, 16,   16, 16,     16, 16, 16, 16,   16, 16, 16,   16,   16,   16, 16,   16,    16, 16,   16, 16,     16, 16, 16, 16,   16, 16, 16,   16,   16,   16, 16,   16,         16, 16,   16, 16,     16, 16, 16, 16,   16, 16, 16, 16,        16, 16, 16, 16,   16, 16, 16, 16,        16, 16, 16, 16,   16, 16, 16, 16,        16, 16, 16, 16,         16, 16,   16, 16,      16, 16, 16, 16,    16, 16,   16, 16,      16, 16, 16, 16,    16, 16,   16, 16,      16, 16, 16, 16,    16, 16,   16, 16,      16, 16, 16, 16};
+    
+    /*-----Pirates of the Caribbean - Main Theme-----*/
     const uint16_t pirates[]        = {A3, C4,    D4, D4, D4, E4,    F4, F4, F4, G4,    E4, E4, D4, C4,    C4, D4,  P,  A3, C4,    A3, C4,    D4, D4, D4, E4,    F4, F4, F4, G4,    E4, E4, D4, C4,    D4, P, A3, C4,    D4, D4, D4, E4,    G4, G4, G4, A4,    B4, B4, A4, G4,    A4, D4, P, D4, E4,    F4, F4, G4,    A4, D4, P, D4, E4,    E4, E4, F4, D4,    E4, P};
     const uint8_t pirates_Beates[]  = {32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    32, 64,  32, 32, 32,    32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64,32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    32, 64, 32,32, 32,    64, 64, 64,    32, 64, 32,32, 32,    64, 64, 32, 32,    64, 64};
     
@@ -212,7 +206,6 @@ void speakerMenu(){
     const uint16_t Harry_Potter[]       = {B4,   E5, G5, F5,   E5,   B5,  F5,    E5, G5, F5,  D5,  F5,   B4, P,    B4, E5, G5, F5,   E5, B5,   D6, С6_D,  C6, B5_B,   C6, B5, A5_D,   B4, F5, E5, P};
     const uint8_t Harry_Potter_Beats[]  = {64,   64, 32, 64,   128,  64, 128,    64, 32, 64,  128, 64,   156,64,   64, 64, 32, 64,   128,64,   128,64,    128,64,     64, 32, 64,     128,64, 156,64};
     
-        
     fillSpeakerMenuBuffer();
     lcdStruct.displayFullUpdate(menuBuffer);
     

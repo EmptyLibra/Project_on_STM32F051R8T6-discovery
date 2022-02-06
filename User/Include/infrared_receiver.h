@@ -1,22 +1,30 @@
 #ifndef IR_HEADER
 #define IR_HEADER
 
+/* Detected infrared signal from different pults on NEC protocol (using Extented NEC protocol).
+*  Executes commands to control LED and buttons.
+*  Using infrared receiver on the PB10 pin and channel 3 of the Timer2 in capture mode.
+*  Scheme of infrared receiver:
+      |----------|
+      |    __    |
+      |   /  \   |
+      |   \__/   |
+      |----------|
+        |  |   |
+        |  |   |
+       V0 GND  5V
+*/
+
 #include "pins_and_settings.h"
 #include "stm32f0xx_tim.h"
 
-/* detected infrared signal from different pults on NEC protocol */
-/* scheme infrared receiver
-  |---------|
-  |  /--\   |
-  |  \__/   |
-  |---------|
-    |  |  |
-    |  |  |
-   V0 GND 5V
-*/
-/* Use Extented NEC protocol:
-*  
-*/
+/*==============================Defines==========================================*/
+// ir-receiver pins (PB10)
+#define RCC_AHBENR_IREN   RCC_AHBENR_GPIOBEN
+#define IR_PORT           GPIOB
+#define IR_PIN            GPIO_Pin_10
+#define IR_PIN_SOURCE     GPIO_PinSource10
+
 // buttons on chinese pult
 #define IR_BUTTON_TOP     0x00FFA857 // Button - Green arrow up
 #define IR_BUTTON_BOTOOM  0x00FFB04F // Button - DIY2
@@ -37,8 +45,10 @@
 #define IF_FUNAI_BLUE_LED      0x2107DE21
 #define IF_FUNAI_GREEN_LED     0x21073EC1
 
-extern uint16_t curButton;
+/*===========================Variables==================================*/
+extern uint16_t IR_curButton;
 
+/*===========================Functions==================================*/
 void IR_init(void);
 
 

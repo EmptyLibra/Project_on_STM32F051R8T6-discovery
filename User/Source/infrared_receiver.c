@@ -1,12 +1,30 @@
 #include "infrared_receiver.h"
 
-uint16_t currData[64] = {0};
-uint16_t prevDataElem = 0, curDataElem = 0;
-uint8_t currDataIndex = 0;
+/* Detected infrared signal from different pults on NEC protocol (using Extented NEC protocol).
+*  Executes commands to control LED and buttons.
+*  Using infrared receiver on the PB10 pin and channel 3 of the Timer2 in capture mode.
+*  Scheme of infrared receiver:
+      |----------|
+      |    __    |
+      |   /  \   |
+      |   \__/   |
+      |----------|
+        |  |   |
+        |  |   |
+       V0 GND  5V
+*/
 
-uint32_t IRData = 0;
-uint8_t IRDataCounter = 0;
-uint16_t curButton = 0;
+/*===========================Variables==================================*/
+static uint16_t currData[64] = {0};                       // Contains pulse durations (start puls, 0 or 1)
+static uint8_t currDataIndex = 0;
+static uint16_t prevDataElem = 0, curDataElem = 0;
+
+
+static uint32_t IRData = 0;                               // Contains current ir command like: 0x00FF9A65
+static uint8_t IRDataCounter = 0;
+uint16_t IR_curButton = 0;
+//
+/*===========================Functions==================================*/
 void TIM2_IRQHandler(void){
     // pult testing
 //    if(TIM_GetITStatus(TIM2, TIM_IT_CC3) == SET){
@@ -51,27 +69,27 @@ void TIM2_IRQHandler(void){
             switch(IRData){
                 case IR_BUTTON_TOP:
                 case IF_FUNAI_BUTTON_TOP:
-                    curButton = BUTTON_TOP;
+                    IR_curButton = BUTTON_TOP;
                     break;
                 case IR_BUTTON_BOTOOM:
                 case IF_FUNAI_BUTTON_BOTTOM:
-                    curButton = BUTTON_BOTOOM;
+                    IR_curButton = BUTTON_BOTOOM;
                     break;
                 case IR_BUTTON_RIGHT:
                 case IF_FUNAI_BUTTON_RIGHT:
-                    curButton = BUTTON_RIGHT;
+                    IR_curButton = BUTTON_RIGHT;
                     break;
                 case IR_BUTTON_LEFT:
                 case IF_FUNAI_BUTTON_LEFT:
-                    curButton = BUTTON_LEFT;
+                    IR_curButton = BUTTON_LEFT;
                     break;
                 case IR_BUTTON_SELECT:
                 case IR_FUNAI_BUTTON_OK:
-                    curButton = BUTTON_SELECT;
+                    IR_curButton = BUTTON_SELECT;
                     break;
                 case IR_BUTTON_BACK:
                 case IF_FUNAI_BUTTON_BACK:
-                    curButton = BUTTON_BACK;
+                    IR_curButton = BUTTON_BACK;
                     break;
                 case IR_GREEN_LED:
                 case IF_FUNAI_GREEN_LED:
@@ -82,7 +100,7 @@ void TIM2_IRQHandler(void){
                     GPIO_WriteBit(GPIOC, LD3_PIN, (BitAction)(!GPIO_ReadOutputDataBit(GPIOC, LD3_PIN)));
                     break;
                 default:
-                    curButton = 0;
+                    IR_curButton = 0;
             }
             IRDataCounter = 0;
             currDataIndex = 0;
@@ -95,17 +113,17 @@ void TIM2_IRQHandler(void){
 
 void IR_init(){
     RCC_AHBPeriphClockCmd(RCC_AHBENR_GPIOBEN, ENABLE);
-    GPIO_InitTypeDef GPIOB_ini;
+    GPIO_InitTypeDef GPIOx_ini;
     
-    GPIOB_ini.GPIO_Pin = GPIO_Pin_10;
-    GPIOB_ini.GPIO_Mode = GPIO_Mode_AF;
-    GPIOB_ini.GPIO_Speed = GPIO_Speed_2MHz;   // 2, 10, 50 ̃ö
-    GPIOB_ini.GPIO_OType = GPIO_OType_PP;
-    GPIOB_ini.GPIO_PuPd = GPIO_PuPd_DOWN;
-    GPIO_Init(GPIOB, &GPIOB_ini);
+    GPIOx_ini.GPIO_Pin = IR_PIN;
+    GPIOx_ini.GPIO_Mode = GPIO_Mode_AF;
+    GPIOx_ini.GPIO_Speed = GPIO_Speed_2MHz;   // 2, 10, 50 ̃ö
+    GPIOx_ini.GPIO_OType = GPIO_OType_PP;
+    GPIOx_ini.GPIO_PuPd = GPIO_PuPd_DOWN;
+    GPIO_Init(IR_PORT, &GPIOx_ini);
     
     // PB10 - AF2 - TIM2_CH3
-    GPIO_PinAFConfig(GPIOB, GPIO_PinSource10, GPIO_AF_2);
+    GPIO_PinAFConfig(IR_PORT, IR_PIN_SOURCE, GPIO_AF_2);
     
     // timer2 settings
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);

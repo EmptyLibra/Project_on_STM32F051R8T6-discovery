@@ -41,8 +41,8 @@ void ledsPinInit(){
 }
 uint8_t isButtonPressed(uint16_t GPIO_Pin){
     GPIOx = ((GPIO_Pin == BUTTON_BOTOOM) || (GPIO_Pin == BUTTON_SELECT) ? BUTTONS_BOTOOM_SEL_PORT : BUTTONS_BRTL_PORT);
-    if(curButton == GPIO_Pin){
-        curButton = 0;
+    if(IR_curButton == GPIO_Pin){
+        IR_curButton = 0;
         return 1;
     }
     if(GPIO_ReadInputDataBit(GPIOx, GPIO_Pin) == 1){

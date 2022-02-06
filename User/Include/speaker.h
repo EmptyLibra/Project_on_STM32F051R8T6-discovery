@@ -1,10 +1,17 @@
 #ifndef SPEAKER_HEADER
 #define SPEAKER_HEADER
 
+/* Play music on selected speaker - small (without amplifier) or big (with amplifier).
+*  Small speaker on PB12, Big speaker on PB11.
+*  Music can be played in the background (playBackgroundSong function) using system timer or 
+*  not in background (playSong), but this stops the MCU work. */
+
 #include "lcd_lib.h"
 #include "stm32f0xx_tim.h"
-#include <string.h>  // for memset
-/*=================All notes (Scientific notation)============================*/
+#include <string.h>          // for memset
+
+/*==============================Defines==========================================*/
+/*------------All notes (Scientific notation)---------------------*/
 // Frequency of notes in herz
 /*---Subcontroktave---*/
 #define C0   16   // Do
@@ -179,42 +186,50 @@
 
 #define P 10 // pause
 
-#define LOOPS_PAUSE 1000000 //between loops, us
-#define NOTES_PAUSE 1000 //between notes, us
+//--------Other definitions----------------------
+#define LOOPS_PAUSE 1000000       //between loops, us
+#define NOTES_PAUSE 1000          //between notes, us
 #define SPEAKER_MENU_COUNT 5
 
-#define SPEAKER_MINI_PIN GPIO_Pin_12
-#define SPEAKER_BIG_PIN  GPIO_Pin_11
-#define SPEAKER_MINI(mode) ((mode) == 1 ? GPIO_WriteBit(GPIOB, SPEAKER_MINI_PIN, Bit_SET)  : GPIO_WriteBit(GPIOB, SPEAKER_MINI_PIN, Bit_RESET))
-#define SPEAKER_BIG(mode)  ((mode) == 1 ? GPIO_WriteBit(GPIOB, SPEAKER_BIG_PIN, Bit_SET)  : GPIO_WriteBit(GPIOB, SPEAKER_BIG_PIN, Bit_RESET))
-#define SPEAKER_TYPE_MINI 0
-#define SPEAKER_TYPE_BIG  1
+#define RCC_AHBENR_SPEAKEREN   RCC_AHBENR_GPIOBEN
+#define SPEAKER_PORT           GPIOB
+#define SPEAKER_MINI_PIN       GPIO_Pin_12
+#define SPEAKER_BIG_PIN        GPIO_Pin_11
+#define SPEAKER_MINI(mode)     ((mode) == 1 ? GPIO_WriteBit(SPEAKER_PORT, SPEAKER_MINI_PIN, Bit_SET)  : GPIO_WriteBit(SPEAKER_PORT, SPEAKER_MINI_PIN, Bit_RESET))
+#define SPEAKER_BIG(mode)      ((mode) == 1 ? GPIO_WriteBit(SPEAKER_PORT, SPEAKER_BIG_PIN,  Bit_SET)  : GPIO_WriteBit(SPEAKER_PORT, SPEAKER_BIG_PIN,  Bit_RESET))
+#define SPEAKER_TYPE_MINI      0
+#define SPEAKER_TYPE_BIG       1
 
 // Music settings
-#define STATE_NOTE_SET 0
+#define STATE_NOTE_SET   0
 #define STATE_NOTE_RESET 1
 #define STATE_NOTE_PAUSE 2
+
+/*===========================Structs==================================*/
+// Struct with current song settings
 typedef struct{
-    uint8_t songState;
-    uint16_t noteNumber;
-    uint32_t elapsed_time;
-    uint32_t signal_period;
-    uint8_t isCyclickSong;
+    uint8_t songState;              // State of current note (Note set, Note reset or note pause)
+    uint16_t noteNumber;            // Number of current note
+    uint32_t elapsed_time;          // Time spent playing one note
+    uint32_t signal_period;         // Period of one wave of signal (depends on the frequency)
+    uint8_t isCyclickSong;          // Is song constantly repeates (for example, in games) or not
 } MusicSet;
 extern MusicSet musicSet;
 
+// Struct with current song data
 typedef struct{
-    uint8_t speakerType;
+    uint8_t speakerType;            // small or big speaker
     uint8_t tempo;                  // song tempo
     uint16_t wholeNoteLen;          // length of whole note
     uint16_t noteCount;             // count of notes in song
     const uint16_t *freq;           // array of all notes
-    const uint8_t *beats;           // array of relative duration of notes
+    const uint8_t *beats;           // array of relative duration of notes (duration of the whole note: 255 (256))
 } Song;
 extern Song song;
 
+/*===========================Functions==================================*/
 void speakerInit(void);
-void playSong(uint8_t speakerType, uint16_t *curSong, uint8_t* songBeats, uint16_t curNoteCount, uint8_t curTempo);
+void playSong(uint8_t speakerType, const uint16_t *curSong, const uint8_t* songBeats, uint16_t curNoteCount, uint8_t curTempo);
 void playBackgroundSong(uint8_t speakerType, const uint16_t *curSong, const uint8_t* songBeats, uint16_t curNoteCount, uint8_t curTempo, uint8_t isCyclick);
 void fillSpeakerMenuBuffer(void);
 void drawChooseMenu(uint8_t choose);

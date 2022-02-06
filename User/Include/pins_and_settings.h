@@ -60,12 +60,7 @@
     #ifdef STM32F0_DISCOVERY
         #include "stm32f0xx_usart.h"
         
-        #define USART1_PIN_RX GPIO_Pin_10  // PA10 - RX (USART1)
-		#define USART1_PIN_TX GPIO_Pin_9   // PA9 - TX (USART1)
-        
-        #define UART1 USART1
-        #define UART_SEND_DATA(data) USART_SendData(UART1, data)
-        #define UART_RECEIVE_DATA() ((uint8_t) USART_ReceiveData(UART1))
+
     #endif
 #endif
 

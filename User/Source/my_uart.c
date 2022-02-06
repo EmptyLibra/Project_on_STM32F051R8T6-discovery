@@ -1,16 +1,22 @@
 #include "my_uart.h"
 
-//### use asart as uart ###
-// PA9  - TX - white wire
-// PA10 - RX - green wire
-uint32_t uart1_IT_RX_flag = 0, uart1_IT_TX_flag = 0;
-uint8_t commandByte = 0;
-FIFO_CREATE(my_fifo);              // my FIFO for uart
-//uint8_t uartBuffer[LCD_BUFFER_LENGTH] = {0x00};
+/* Receive data from Bluetooth, using USART (as UART).
+*  TX: PA9, RX: PA10
+*  Data format: 0xCAA.
+*  C - command byte, first A - always 0x0D, second A - always 0x0A.
+*/
 
+/*===========================Variables and Structs==================================*/
+FIFO_CREATE(my_fifo);                                     // my FIFO for uart
+uint32_t uart1_IT_RX_flag = 0, uart1_IT_TX_flag = 0;      // Successful reception and transmission flag
+
+/* For BlueTooth */
+static uint8_t commandByte = 0;   // BlueTooth command byte
+
+/*===========================Functions==================================*/
 void USART1_IRQHandler(){ // interrupts handing
-    if(USART_GetITStatus(UART1, USART_IT_RXNE) == SET){
-		USART_ClearITPendingBit(UART1, USART_IT_RXNE);
+    if(USART_GetITStatus(USART1, USART_IT_RXNE) == SET){
+		USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 		FIFO_PUSH(my_fifo, UART_RECEIVE_DATA());
         
         if(FIFO_COUNT_ELEMENTS(my_fifo) > 2){
@@ -29,20 +35,20 @@ void USART1_IRQHandler(){ // interrupts handing
 
 void uartPinsInit(void){
     // enable clocking for port A and USART1
-    RCC_AHBPeriphClockCmd(RCC_AHBENR_GPIOAEN, ENABLE);
+    RCC_AHBPeriphClockCmd(RCC_AHBENR_UART1EN, ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2ENR_USART1EN, ENABLE);
     
     // PA10 - RX, PA9 - TX in alternative function
-    GPIO_InitTypeDef GPIOA_ini;
-    GPIOA_ini.GPIO_Pin = USART1_PIN_RX | USART1_PIN_TX;
-    GPIOA_ini.GPIO_Mode = GPIO_Mode_AF;
-    GPIOA_ini.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIOA_ini.GPIO_OType = GPIO_OType_PP;
-    GPIOA_ini.GPIO_PuPd = GPIO_PuPd_UP;
-    GPIO_Init(GPIOA, &GPIOA_ini);
+    GPIO_InitTypeDef GPIOx_ini;
+    GPIOx_ini.GPIO_Pin = UART1_TX_PIN | UART1_RX_PIN;
+    GPIOx_ini.GPIO_Mode = GPIO_Mode_AF;
+    GPIOx_ini.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIOx_ini.GPIO_OType = GPIO_OType_PP;
+    GPIOx_ini.GPIO_PuPd = GPIO_PuPd_UP;
+    GPIO_Init(UART1_PORT, &GPIOx_ini);
     
-    GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_1);
-    GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_1);
+    GPIO_PinAFConfig(UART1_PORT, UART1_RX_SOURCE, GPIO_AF_1);
+    GPIO_PinAFConfig(UART1_PORT, UART1_TX_SOURCE, GPIO_AF_1);
     // usart settings
     NVIC_EnableIRQ(USART1_IRQn);   // enable interrupts
     

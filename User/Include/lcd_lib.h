@@ -1,9 +1,9 @@
 #ifndef LCD_HEADER
 #define LCD_HEADER
 
-//---------------------------------Defines and includes-------------------------------------------------------------
 #include "pins_and_settings.h"
 
+/*==============================Defines==========================================*/
 // direction of the shift for the running line
 #define RIGHT_SHIFT      0
 #define LEFT_SHIFT       1
@@ -11,11 +11,11 @@
 #define CYCLIC_SHIFT     0
 #define NOT_CYCLIC_SHIFT 1
 
-//---------------------------------Variables-------------------------------------------------------------
+/*===========================Structs and Variables==================================*/
 extern LCD_STRUCT lcdStruct;                                              // struct with main functions and display buffer
 extern const uint8_t LIBRARY_SYMBOL[];                                          // library with all symbols in ASCII
     
-//---------------------------------Functions-------------------------------------------------------------
+/*===========================Functions==================================*/
 //-----init functions--------------------------------------------------------------
 void LCD_PortsInit(void);                                                 // initializes all LCD pins
 void LCD_Init(void);                                                      // init LCD display and pins
