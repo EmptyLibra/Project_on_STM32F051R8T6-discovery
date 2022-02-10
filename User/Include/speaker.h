@@ -208,6 +208,7 @@
 /*===========================Structs==================================*/
 // Struct with current song settings
 typedef struct{
+    uint8_t isSongPlay;             // Is song play now or not
     uint8_t songState;              // State of current note (Note set, Note reset or note pause)
     uint16_t noteNumber;            // Number of current note
     uint32_t elapsed_time;          // Time spent playing one note
@@ -226,6 +227,25 @@ typedef struct{
     const uint8_t *beats;           // array of relative duration of notes (duration of the whole note: 255 (256))
 } Song;
 extern Song song;
+
+/*==================Songs library===================================================*/
+extern const uint16_t StarWars_MainTheme[38];
+extern const uint8_t StarWars_MainTheme_Beats[38];
+
+extern const uint16_t StarWars_TheImperialMarch[36];
+extern const uint8_t StarWars_TheImperialMarch_Beats[36];
+
+extern const uint16_t FurElise[41];
+extern const uint8_t FurElise_Beates[41];
+
+extern const uint16_t pirates[68];
+extern const uint8_t pirates_Beates[68];
+
+extern const uint16_t Harry_Potter[31];
+extern const uint8_t Harry_Potter_Beats[31];
+
+extern const uint16_t TetrisGameSong[43];
+extern const uint8_t TetrisGameSong_Beats[43];
 
 /*===========================Functions==================================*/
 void speakerInit(void);

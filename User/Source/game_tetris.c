@@ -636,8 +636,6 @@ void startTetrisGame(){
     songSelectTetris();
     gameInit();
     
-    uint16_t TetrisGameSong[]       = {C5,    E5, B4_B, C5, D5, E5, D5, B4, A4,    A4_D, A4, C5, E5, D5, C5,    G4_D, G4, A4, B4, E5,    C5, A4, A4, P,     F4, A4, C5, B4, A4,    G4, E4, G4, F4, E4,    G4_D, G4, B4, A4, E5,     C5, B4, B4, P};
-    uint8_t TetrisGameSong_Beats[]  = {64,    64, 32,   32, 32, 16, 16, 32, 32,    64,   32, 32, 64, 32, 32,    64,   32, 32, 64, 64,    64, 64, 64, 64,    64, 32, 64, 32, 32,    64, 32, 64, 32, 32,    64,   32, 32, 64, 64,     64, 64, 64, 64};
     if(isTetrisSong){
         playBackgroundSong(SPEAKER_TYPE_BIG, TetrisGameSong, TetrisGameSong_Beats, sizeof(TetrisGameSong)/2, 140,1);
     }

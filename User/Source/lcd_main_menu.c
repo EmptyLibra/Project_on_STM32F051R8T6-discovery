@@ -90,9 +90,10 @@ void LCD_StartMainMenu(){
             if(isButtonPressed(BUTTON_SELECT)){
                 delay(500000);
                 switch(currentItem){
-//                    case 0:
-//                        startGame2048();
-//                        break;
+                    case 0:
+                        startGame2048();
+//                        sendNEC(0x00FF02FD);
+                        break;
                     case 1:
                         startSnakeGame();
                         break;

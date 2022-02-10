@@ -19,10 +19,38 @@ static const char SPEAKER_MENU_ITEMS[][21] = {
     "Harry Potter        "
 };
 static uint8_t menuBuffer[LCD_BUFFER_LENGTH] = {0x00};
+
+/*==================Songs library===================================================*/
+/*-----Star Wars - Main Theme-----*/
+const uint16_t StarWars_MainTheme[]       = {F4, F4, F4, A4_D, F5,    D5_D, D5, C5, A5_D,    F5, D5_D, D5, C5, A5_D,    F5, D5_D, D5, D5_D, C5,    F4, F4, F4, A4_D, F5,    D5_D, D5, C5, A5_D,    F5, D5_D, D5, C5, A5_D,    F5, D5_D, D5, D5_D, C5};
+const uint8_t StarWars_MainTheme_Beats[]  = {21, 21, 21, 128, 128,    21,   21, 21, 128,     64, 21,   21, 21, 128,     64, 21,   21, 21,   128,   21, 21, 21, 128, 128,    21,   21, 21, 128,     64, 21,   21, 21, 128,     64, 21,   21, 21,   128};
+
+/*-----Star Wars - The Imperial March------*/
+const uint16_t StarWars_TheImperialMarch[]       = {A4, P,  A4, P,  A4, P,     F4, P, C5, P,  A4, P,     F4, P, C5, P, A4, P,     E5, P,  E5, P,  E5, P,     F5, P, C5, P, A4_B, P,    F4, P, C5, P, A4, P};
+const uint8_t StarWars_TheImperialMarch_Beats[]  = {50, 20, 50, 20, 50, 20,    40, 5, 20, 5,  60, 10,    40, 5, 20, 5, 60, 80,    50, 20, 50, 20, 50, 20,    40, 5, 20, 5, 60,   10,   40, 5, 20, 5, 60, 40};
+
+/*-----Ludwig Van Beethoven - Fur Elise-----*/
+const uint16_t FurElise[]         = {E5, D5_D, E5, D5_D, E5, B4, D5, C5, A4, P,    C4, E4, A4, B4, P,    E4, G4_D, B4, C5,  P,   C4, E5, D5_D, E5, D5_D, E5, B4, D5, C5, A4, P,     C4, E4, A4, B4, P,   C4, C5, B4, A4, P};
+const uint8_t FurElise_Beates[]   = {16, 16,   16, 16,   16, 16, 16, 16, 32, 16,   16, 16, 16, 32, 16,   16, 16,   16, 32, 16,   16, 16, 16,   16, 16,   16, 16, 16, 16, 32, 16,    16, 16, 16, 32, 16,  16, 16, 16, 32, 32};
+
+//    const uint16_t flightOfTheBumblebee[]        = {E6, D6_D, D6, С6_D,   D6, C6, C6, B5,   C6, B5, B5_B, A5,   G5_D, G5, F5_D, F5,    E5, D5_D, D5, С5_D,   D5, C5, C5, B4,   C5, B4, B4_B, A4,   G4_D, G4, F4_D, F4,         E4, D4_D, D4, С4_D,   D4, C4, C4, B3,   E4, D4_D, D4, С4_D,    D4, C4, C4, B3,   E4, D4_D, D4, С4_D,    D4, C4, C4, B3,   E4, D4_D, D4, С4_D,    D4, C4, C4, B3,         E4, D4_D, D4, С4_D,    D4, C4, C4, B3,    C4, С4_D, D4, D4_D,    E4, F4, E4, D4,    E4, D4_D, D4, С4_D,    D4, C4, C4, B3,    C4, С4_D, D4, D4_D,    E4, F4, E4, D4};
+//    const uint8_t flightOfTheBumblebee_Beates[]  = {16, 16,   16, 16,     16, 16, 16, 16,   16, 16, 16,   16,   16,   16, 16,   16,    16, 16,   16, 16,     16, 16, 16, 16,   16, 16, 16,   16,   16,   16, 16,   16,         16, 16,   16, 16,     16, 16, 16, 16,   16, 16, 16, 16,        16, 16, 16, 16,   16, 16, 16, 16,        16, 16, 16, 16,   16, 16, 16, 16,        16, 16, 16, 16,         16, 16,   16, 16,      16, 16, 16, 16,    16, 16,   16, 16,      16, 16, 16, 16,    16, 16,   16, 16,      16, 16, 16, 16,    16, 16,   16, 16,      16, 16, 16, 16};
+
+/*-----Pirates of the Caribbean - Main Theme-----*/
+const uint16_t pirates[]        = {A3, C4,    D4, D4, D4, E4,    F4, F4, F4, G4,    E4, E4, D4, C4,    C4, D4,  P,  A3, C4,    A3, C4,    D4, D4, D4, E4,    F4, F4, F4, G4,    E4, E4, D4, C4,    D4, P, A3, C4,    D4, D4, D4, E4,    G4, G4, G4, A4,    B4, B4, A4, G4,    A4, D4, P, D4, E4,    F4, F4, G4,    A4, D4, P, D4, E4,    E4, E4, F4, D4,    E4, P};
+const uint8_t pirates_Beates[]  = {32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    32, 64,  32, 32, 32,    32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64,32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    32, 64, 32,32, 32,    64, 64, 64,    32, 64, 32,32, 32,    64, 64, 32, 32,    64, 64};
+
+/*-----Harry Potter - Main theme-----*/
+const uint16_t Harry_Potter[]       = {B4,   E5, G5, F5,   E5,   B5,  F5,    E5, G5, F5,  D5,  F5,   B4, P,    B4, E5, G5, F5,   E5, B5,   D6, С6_D,  C6, B5_B,   C6, B5, A5_D,   B4, F5, E5, P};
+const uint8_t Harry_Potter_Beats[]  = {64,   64, 32, 64,   128,  64, 128,    64, 32, 64,  128, 64,   156,64,   64, 64, 32, 64,   128,64,   128,64,    128,64,     64, 32, 64,     128,64, 156,64};
+
+const uint16_t TetrisGameSong[]       = {C5,    E5, B4_B, C5, D5, E5, D5, B4, A4,    A4_D, A4, C5, E5, D5, C5,    G4_D, G4, A4, B4, E5,    C5, A4, A4, P,     F4, A4, C5, B4, A4,    G4, E4, G4, F4, E4,    G4_D, G4, B4, A4, E5,     C5, B4, B4, P};
+const uint8_t TetrisGameSong_Beats[]  = {64,    64, 32,   32, 32, 16, 16, 32, 32,    64,   32, 32, 64, 32, 32,    64,   32, 32, 64, 64,    64, 64, 64, 64,    64, 32, 64, 32, 32,    64, 32, 64, 32, 32,    64,   32, 32, 64, 64,     64, 64, 64, 64};
+
 //
 /*===========================Functions==================================*/
 void SysTick_Handler(){ // system timer handler
-    if(musicSet.noteNumber < song.noteCount){
+    if(musicSet.noteNumber < song.noteCount && musicSet.isSongPlay == 1){
         // play one note
         if(musicSet.songState != STATE_NOTE_PAUSE && 
                 musicSet.elapsed_time < 1000*((uint32_t)((song.wholeNoteLen*song.beats[musicSet.noteNumber])/255))){
@@ -122,6 +150,7 @@ void playBackgroundSong(uint8_t speakerType, const uint16_t *curSong, const uint
     song.beats = songBeats;
     
     // set settings for music
+    musicSet.isSongPlay = 1;
     musicSet.elapsed_time = 0;
     musicSet.signal_period = 1000000 / song.freq[0];
     musicSet.songState = STATE_NOTE_SET;
@@ -182,29 +211,6 @@ void speakerMenu(){
     
     uint8_t curSpeaker = chooseSpeakerType();
     
-    /*==================Songs library===================================================*/
-    /*-----Star Wars - Main Theme-----*/
-    const uint16_t StarWars_MainTheme[]       = {F4, F4, F4, A4_D, F5,    D5_D, D5, C5, A5_D,    F5, D5_D, D5, C5, A5_D,    F5, D5_D, D5, D5_D, C5,    F4, F4, F4, A4_D, F5,    D5_D, D5, C5, A5_D,    F5, D5_D, D5, C5, A5_D,    F5, D5_D, D5, D5_D, C5};
-    const uint8_t StarWars_MainTheme_Beats[]  = {21, 21, 21, 128, 128,    21,   21, 21, 128,     64, 21,   21, 21, 128,     64, 21,   21, 21,   128,   21, 21, 21, 128, 128,    21,   21, 21, 128,     64, 21,   21, 21, 128,     64, 21,   21, 21,   128};
-
-    /*-----Star Wars - The Imperial March------*/
-    const uint16_t StarWars_TheImperialMarch[]       = {A4, P,  A4, P,  A4, P,     F4, P, C5, P,  A4, P,     F4, P, C5, P, A4, P,     E5, P,  E5, P,  E5, P,     F5, P, C5, P, A4_B, P,    F4, P, C5, P, A4, P};
-    const uint8_t StarWars_TheImperialMarch_Beats[]  = {50, 20, 50, 20, 50, 20,    40, 5, 20, 5,  60, 10,    40, 5, 20, 5, 60, 80,    50, 20, 50, 20, 50, 20,    40, 5, 20, 5, 60,   10,   40, 5, 20, 5, 60, 40};
-
-    /*-----Ludwig Van Beethoven - Fur Elise-----*/
-    const uint16_t FurElise[]         = {E5, D5_D, E5, D5_D, E5, B4, D5, C5, A4, P,    C4, E4, A4, B4, P,    E4, G4_D, B4, C5,  P,   C4, E5, D5_D, E5, D5_D, E5, B4, D5, C5, A4, P,     C4, E4, A4, B4, P,   C4, C5, B4, A4, P};
-    const uint8_t FurElise_Beates[]   = {16, 16,   16, 16,   16, 16, 16, 16, 32, 16,   16, 16, 16, 32, 16,   16, 16,   16, 32, 16,   16, 16, 16,   16, 16,   16, 16, 16, 16, 32, 16,    16, 16, 16, 32, 16,  16, 16, 16, 32, 32};
-    
-//    const uint16_t flightOfTheBumblebee[]        = {E6, D6_D, D6, С6_D,   D6, C6, C6, B5,   C6, B5, B5_B, A5,   G5_D, G5, F5_D, F5,    E5, D5_D, D5, С5_D,   D5, C5, C5, B4,   C5, B4, B4_B, A4,   G4_D, G4, F4_D, F4,         E4, D4_D, D4, С4_D,   D4, C4, C4, B3,   E4, D4_D, D4, С4_D,    D4, C4, C4, B3,   E4, D4_D, D4, С4_D,    D4, C4, C4, B3,   E4, D4_D, D4, С4_D,    D4, C4, C4, B3,         E4, D4_D, D4, С4_D,    D4, C4, C4, B3,    C4, С4_D, D4, D4_D,    E4, F4, E4, D4,    E4, D4_D, D4, С4_D,    D4, C4, C4, B3,    C4, С4_D, D4, D4_D,    E4, F4, E4, D4};
-//    const uint8_t flightOfTheBumblebee_Beates[]  = {16, 16,   16, 16,     16, 16, 16, 16,   16, 16, 16,   16,   16,   16, 16,   16,    16, 16,   16, 16,     16, 16, 16, 16,   16, 16, 16,   16,   16,   16, 16,   16,         16, 16,   16, 16,     16, 16, 16, 16,   16, 16, 16, 16,        16, 16, 16, 16,   16, 16, 16, 16,        16, 16, 16, 16,   16, 16, 16, 16,        16, 16, 16, 16,         16, 16,   16, 16,      16, 16, 16, 16,    16, 16,   16, 16,      16, 16, 16, 16,    16, 16,   16, 16,      16, 16, 16, 16,    16, 16,   16, 16,      16, 16, 16, 16};
-    
-    /*-----Pirates of the Caribbean - Main Theme-----*/
-    const uint16_t pirates[]        = {A3, C4,    D4, D4, D4, E4,    F4, F4, F4, G4,    E4, E4, D4, C4,    C4, D4,  P,  A3, C4,    A3, C4,    D4, D4, D4, E4,    F4, F4, F4, G4,    E4, E4, D4, C4,    D4, P, A3, C4,    D4, D4, D4, E4,    G4, G4, G4, A4,    B4, B4, A4, G4,    A4, D4, P, D4, E4,    F4, F4, G4,    A4, D4, P, D4, E4,    E4, E4, F4, D4,    E4, P};
-    const uint8_t pirates_Beates[]  = {32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    32, 64,  32, 32, 32,    32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64,32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    64, 64, 32, 32,    32, 64, 32,32, 32,    64, 64, 64,    32, 64, 32,32, 32,    64, 64, 32, 32,    64, 64};
-    
-    /*-----Harry Potter - Main theme-----*/
-    const uint16_t Harry_Potter[]       = {B4,   E5, G5, F5,   E5,   B5,  F5,    E5, G5, F5,  D5,  F5,   B4, P,    B4, E5, G5, F5,   E5, B5,   D6, С6_D,  C6, B5_B,   C6, B5, A5_D,   B4, F5, E5, P};
-    const uint8_t Harry_Potter_Beats[]  = {64,   64, 32, 64,   128,  64, 128,    64, 32, 64,  128, 64,   156,64,   64, 64, 32, 64,   128,64,   128,64,    128,64,     64, 32, 64,     128,64, 156,64};
     
     fillSpeakerMenuBuffer();
     lcdStruct.displayFullUpdate(menuBuffer);

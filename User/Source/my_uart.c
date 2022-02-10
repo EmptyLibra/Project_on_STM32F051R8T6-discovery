@@ -11,7 +11,7 @@ FIFO_CREATE(my_fifo);                                     // my FIFO for uart
 uint32_t uart1_IT_RX_flag = 0, uart1_IT_TX_flag = 0;      // Successful reception and transmission flag
 
 /* For BlueTooth */
-static uint8_t commandByte = 0;   // BlueTooth command byte
+static uint16_t commandByte = 0;   // BlueTooth command byte
 
 /*===========================Functions==================================*/
 void USART1_IRQHandler(){ // interrupts handing
@@ -19,12 +19,50 @@ void USART1_IRQHandler(){ // interrupts handing
 		USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 		FIFO_PUSH(my_fifo, UART_RECEIVE_DATA());
         
-        if(FIFO_COUNT_ELEMENTS(my_fifo) > 2){
-            commandByte = FIFO_POP(my_fifo);
+        if(FIFO_COUNT_ELEMENTS(my_fifo) >= 4){
+            commandByte = ((uint16_t)FIFO_POP(my_fifo) << 8) + (uint16_t)FIFO_POP(my_fifo);
             if(FIFO_POP(my_fifo) == 0x0D){
                 if(FIFO_POP(my_fifo) == 0x0A){
-                    if(commandByte == 0x89){
-                        GPIO_WriteBit(GPIOC, LD4_PIN, (BitAction)(!GPIO_ReadOutputDataBit(GPIOC, LD4_PIN)));
+                    switch(commandByte){
+                        case BT_COMMAND_BUTTON_TOP:
+                            IR_curButton = BUTTON_TOP;
+                            break;
+                        case BT_COMMAND_BUTTON_BOTTOM:
+                            IR_curButton = BUTTON_BOTOOM;
+                            break;
+                        case BT_COMMAND_BUTTON_RIGHT:
+                            IR_curButton = BUTTON_RIGHT;
+                            break;
+                        case BT_COMMAND_BUTTON_LEFT:
+                            IR_curButton = BUTTON_LEFT;
+                            break;
+                        case BT_COMMAND_BUTTON_OK:
+                            IR_curButton = BUTTON_SELECT;
+                            break;
+                        case BT_COMMAND_BUTTON_BACK:
+                            IR_curButton = BUTTON_BACK;
+                            break;
+                        
+                        case BT_COMMAND_SONG_PAUSE:
+                            musicSet.isSongPlay = 0;
+                            break;
+                        case BT_COMMAND_SONG_PLAY:
+                            musicSet.isSongPlay = 1;
+                            break;
+                        
+                        case BT_COMMAND_SONG_ELISE:
+                            playBackgroundSong(SPEAKER_TYPE_BIG, FurElise, FurElise_Beates, sizeof(FurElise)/2, 90,0);
+                            break;
+                        case BT_COMMAND_SONG_SW_MT:
+                            playBackgroundSong(SPEAKER_TYPE_BIG, StarWars_MainTheme, StarWars_MainTheme_Beats, sizeof(StarWars_MainTheme)/2, 108,0);
+                            break;
+                        case BT_COMMAND_SONG_TETRIS:
+                            playBackgroundSong(SPEAKER_TYPE_BIG, TetrisGameSong, TetrisGameSong_Beats, sizeof(TetrisGameSong)/2, 140,1);
+                            musicSet.isCyclickSong = 1;
+                            break;
+                        
+                        default:
+                            GPIO_WriteBit(GPIOC, LD4_PIN, (BitAction)(!GPIO_ReadOutputDataBit(GPIOC, LD4_PIN)));
                     }
                 }
             }
