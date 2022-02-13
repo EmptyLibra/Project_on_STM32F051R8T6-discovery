@@ -64,24 +64,31 @@ Protocol:
 #define IR_BLUE_LED       0x00FF9A65 // Blue button
 #define IR_GREEN_LED      0x00FFA25D // Green button
 
-#define IR_SONG_PAUSE     0x00FFC837 // Button - QUICK
-#define IR_SONG_PLAY      0x00FFE817 // Button - SLOW
+#define IR_SONG_PAUSE_PLAY 0x00FFC837 // Button - QUICK
 #define IR_SONG_SW_MT     0x00FF20DF // Button - JUMP3
 #define IR_SONG_PIRATES   0x00FFA05F // Button - JUMP7
 #define IR_SONG_ELISE     0x00FF609F // Button FADE3
 #define IR_SONG_TETRIS    0x00FFE01F // Button FADE7
 
-// buttons on Funai pult
-#define IR_FUNAI_BUTTON_OK     0x21070EF1
-#define IF_FUNAI_BUTTON_TOP    0x2107CE31
-#define IF_FUNAI_BUTTON_BOTTOM 0x21072ED1
-#define IF_FUNAI_BUTTON_LEFT   0x21076E91
-#define IF_FUNAI_BUTTON_RIGHT  0x2107AE51
-#define IF_FUNAI_BUTTON_BACK   0x21071EE1  
-#define IF_FUNAI_BLUE_LED      0x2107DE21
-#define IF_FUNAI_GREEN_LED     0x21073EC1
+// buttons on Panasonic pult
+#define IR_PANASONIC_BUTTON_TOP         0x400401005253
+#define IR_PANASONIC_BUTTON_BOTOOM      0x40040100D2D3 
+#define IR_PANASONIC_BUTTON_RIGHT       0x40040100F2F3 
+#define IR_PANASONIC_BUTTON_LEFT        0x400401007273 
+#define IR_PANASONIC_BUTTON_SELECT      0x400401009293 
+#define IR_PANASONIC_BUTTON_BACK        0x400401002B2A 
+#define IR_PANASONIC_GREEN_LED          0x40040100CECF 
+#define IR_PANASONIC_BLUE_LED           0x400401008E8F 
+
+#define IR_PANASONIC_SONG_PLAY          0x400409005059
+#define IR_PANASONIC_SONG_PAUSE         0x400409000009
+#define IR_PANASONIC_SONG_SW_MT         0x400401008C8D 
+#define IR_PANASONIC_SONG_PIRATES       0x400401908D1C 
+#define IR_PANASONIC_SONG_ELISE         0x40040190E574 
+#define IR_PANASONIC_SONG_TETRIS        0x400401909100
 
 //=================NEC=========================
+#define IR_PROTOCOL_TYPE_NEC 1
 #define NEC_BITS          32
 #define NEC_HDR_MARK    9000
 #define NEC_HDR_SPACE   4500
@@ -90,8 +97,67 @@ Protocol:
 #define NEC_ZERO_SPACE   560
 #define NEC_RPT_SPACE   2250
 
-/*===========================Variables==================================*/
+/* NEC real len:
+* Preambula mark:                   880-950 (9000 us)
+* Preambula space:                  430-470 (4500 us)
+* One mark, zero mark, zero spase:  40-70   (560 us)
+* One space:                        150-180 (1690 us)
+*/
+
+//=================PANASONIC=========================
+#define IR_PROTOCOL_TYPE_PANASONIC 2
+#define PANASONIC_BITS          48
+#define PANASONIC_HDR_MARK    3600
+#define PANASONIC_HDR_SPACE   1500
+#define PANASONIC_BIT_MARK     400
+#define PANASONIC_ONE_SPACE   1200
+#define PANASONIC_ZERO_SPACE   400
+
+/*Protocol PANASONIC (REC80, JAP) (in my case):
+* 16 bit address, 32 bit commands
+*/
+
+/* PANASONIC real len:
+* Preambula mark:                   300-360 (3000 us)
+* Preambula space:                  160-190 (1500 us)
+* One mark, zero mark, zero spase:  30-60   (400 us)
+* One space:                        110-150 (1200 us)
+*/
+
+//=================DAHATSU=========================
+#define IR_PROTOCOL_TYPE_DAHATSU  3
+#define DAHATSU_BITS              112
+#define DAHATSU_HDR_MARK    3000
+#define DAHATSU_HDR_SPACE   1750
+#define DAHATSU_BIT_MARK     500
+#define DAHATSU_ONE_SPACE   1000
+#define DAHATSU_ZERO_SPACE   500
+
+#define DAHATSU_COMMAND_POWER_ON1 0xC4D364800024C0D0
+#define DAHATSU_COMMAND_POWER_ON2 0x000000007735
+
+#define IR_PROTOCOL_TYPE_UNKNOWN  4
+
+//-----Receive types--------------
+#define IR_RECEIVE_TYPE_NORMAL 0
+#define IR_RECEIVE_TYPE_TEST   1
+
+/*===========================Structs and Variables==================================*/
 extern uint16_t IR_curButton;
+extern uint8_t isIrReceiveEn;
+    
+typedef struct{
+    uint8_t dataReceiveCount;
+    uint64_t receiveIRData1;
+    uint64_t receiveIRData2;
+    uint8_t currProtocolType;
+    
+    uint8_t receiveType;
+    uint8_t isProtocolReceive;
+    
+    uint16_t preambula;
+} IR_ReceiveProt;
+extern IR_ReceiveProt irReceiveProt;
 
 /*===========================Functions==================================*/
 void IR_init(void);
@@ -99,6 +165,7 @@ void IR_init(void);
 //NEC
 void mark(unsigned int time);
 void space(unsigned int time);
-extern void sendNEC (uint32_t data);
-
+extern void sendNEC(uint32_t data);
+extern void sendPanasonic(uint64_t data);
+extern void sendDahatsu(uint64_t data1, uint64_t data2);
 #endif

@@ -870,6 +870,13 @@ void LCD_WriteStringToBuffer(uint8_t *pBuff, const char* str){
 	}
 }
 
+void LCD_WritePartOfStringToBuffer(uint8_t *pBuff, const char* str, uint8_t count){
+	int i;
+	for(i = 0; i < count; i++){
+		LCD_WriteSymbolToBuffer(pBuff, str[i]);
+	}
+}
+
 void LCD_DrawPageFromBuffer(uint8_t *pBuff, uint8_t page){
     for (uint8_t Row = (page << 3); Row < ((page+1) << 3); Row++)
     {

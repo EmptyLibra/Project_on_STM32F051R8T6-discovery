@@ -27,6 +27,9 @@ int main(void)
     ledsPinInit();                         // init leds PC8 and PC9
     IR_init();
     uartPinsInit();
+    
+    NVIC_SetPriority(SysTick_IRQn, 1);
+    NVIC_SetPriority(TIM2_IRQn, 0);
     //----init LCD-----------------------------------------------
     LCD_Init();                  // init Display
     

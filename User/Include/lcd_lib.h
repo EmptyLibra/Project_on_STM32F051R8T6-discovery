@@ -30,6 +30,7 @@ uint8_t LCD_GetHorizontalByte(uint8_t *pBuff, uint8_t Row, uint8_t Col);
 void LCD_BufferShiftPage(uint8_t *pBuff, uint8_t page, uint8_t direct, uint8_t isCyclic);
 void LCD_WriteSymbolToBuffer(uint8_t *pBuff, char sumbol);
 void LCD_WriteStringToBuffer(uint8_t *pBuff, const char* str);
+void LCD_WritePartOfStringToBuffer(uint8_t *pBuff, const char* str, uint8_t count);
 void LCD_DrawPageFromBuffer(uint8_t *pBuff, uint8_t page);
 void LCD_DisplayFullUpdate(uint8_t *pBuff);
 

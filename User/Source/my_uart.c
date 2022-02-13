@@ -60,7 +60,9 @@ void USART1_IRQHandler(){ // interrupts handing
                             playBackgroundSong(SPEAKER_TYPE_BIG, TetrisGameSong, TetrisGameSong_Beats, sizeof(TetrisGameSong)/2, 140,1);
                             musicSet.isCyclickSong = 1;
                             break;
-                        
+                        case 0x6666:
+                            sendDahatsu(DAHATSU_COMMAND_POWER_ON1, DAHATSU_COMMAND_POWER_ON2);
+                            break;
                         default:
                             GPIO_WriteBit(GPIOC, LD4_PIN, (BitAction)(!GPIO_ReadOutputDataBit(GPIOC, LD4_PIN)));
                     }
