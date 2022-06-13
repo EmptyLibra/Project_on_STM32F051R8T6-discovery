@@ -18,7 +18,6 @@ static const char SPEAKER_MENU_ITEMS[][21] = {
     "Pirates of Caribbean",
     "Harry Potter        "
 };
-static uint8_t menuBuffer[LCD_BUFFER_LENGTH] = {0x00};
 
 /*==================Songs library===================================================*/
 /*-----Star Wars - Main Theme-----*/
@@ -49,47 +48,47 @@ const uint8_t TetrisGameSong_Beats[]  = {64,    64, 32,   32, 32, 16, 16, 32, 32
 
 //
 /*===========================Functions==================================*/
-void SysTick_Handler(){ // system timer handler
-    if(musicSet.noteNumber < song.noteCount && musicSet.isSongPlay == 1){
-        // play one note
-        if(musicSet.songState != STATE_NOTE_PAUSE && 
-                musicSet.elapsed_time < 1000*((uint32_t)((song.wholeNoteLen*song.beats[musicSet.noteNumber])/255))){
-            
-            // set note
-            if(song.freq[musicSet.noteNumber] != P){
-                if(musicSet.songState == STATE_NOTE_SET){
-                    song.speakerType == SPEAKER_TYPE_MINI ? SPEAKER_MINI(SET): SPEAKER_BIG(SET);
-                    musicSet.songState = STATE_NOTE_RESET;
-                    
-                    // delay one signal half-period
-                    if(SysTick_Config(48*(musicSet.signal_period/2))){ while(1); /*trap*/ }
-                } else{
-                    song.speakerType == SPEAKER_TYPE_MINI ? SPEAKER_MINI(RESET): SPEAKER_BIG(RESET);
-                    musicSet.songState = STATE_NOTE_SET;
-                    musicSet.elapsed_time += musicSet.signal_period;
-                    
-                    if(SysTick_Config(48*(musicSet.signal_period/2))){ while(1); /*trap*/ }
-                }
-            } else{
-                musicSet.elapsed_time += musicSet.signal_period;
-                if(SysTick_Config(48*(musicSet.signal_period))){ while(1); /*trap*/ }
-            }
-        } else{
-            musicSet.elapsed_time = 0;
-            musicSet.noteNumber++;
-            musicSet.signal_period = 1000000 / song.freq[musicSet.noteNumber];
-            musicSet.songState = STATE_NOTE_SET;
-            
-            if(SysTick_Config(48*NOTES_PAUSE)){ while(1); /*trap*/ }
-        }
-    } else if(musicSet.isCyclickSong){
-        musicSet.elapsed_time = 0;
-        musicSet.signal_period = 1000000 / song.freq[0];
-        musicSet.songState = STATE_NOTE_SET;
-        musicSet.noteNumber = 0;
-        if(SysTick_Config(48000000/1000)){while(1); /*trap*/}
-    }
-}
+//void SysTick_Handler(){ // system timer handler
+//    if(musicSet.noteNumber < song.noteCount && musicSet.isSongPlay == 1){
+//        // play one note
+//        if(musicSet.songState != STATE_NOTE_PAUSE && 
+//                musicSet.elapsed_time < 1000*((uint32_t)((song.wholeNoteLen*song.beats[musicSet.noteNumber])/255))){
+//            
+//            // set note
+//            if(song.freq[musicSet.noteNumber] != P){
+//                if(musicSet.songState == STATE_NOTE_SET){
+//                    song.speakerType == SPEAKER_TYPE_MINI ? SPEAKER_MINI(SET): SPEAKER_BIG(SET);
+//                    musicSet.songState = STATE_NOTE_RESET;
+//                    
+//                    // delayUs one signal half-period
+//                    if(SysTick_Config(48*(musicSet.signal_period/2))){ while(1); /*trap*/ }
+//                } else{
+//                    song.speakerType == SPEAKER_TYPE_MINI ? SPEAKER_MINI(RESET): SPEAKER_BIG(RESET);
+//                    musicSet.songState = STATE_NOTE_SET;
+//                    musicSet.elapsed_time += musicSet.signal_period;
+//                    
+//                    if(SysTick_Config(48*(musicSet.signal_period/2))){ while(1); /*trap*/ }
+//                }
+//            } else{
+//                musicSet.elapsed_time += musicSet.signal_period;
+//                if(SysTick_Config(48*(musicSet.signal_period))){ while(1); /*trap*/ }
+//            }
+//        } else{
+//            musicSet.elapsed_time = 0;
+//            musicSet.noteNumber++;
+//            musicSet.signal_period = 1000000 / song.freq[musicSet.noteNumber];
+//            musicSet.songState = STATE_NOTE_SET;
+//            
+//            if(SysTick_Config(48*NOTES_PAUSE)){ while(1); /*trap*/ }
+//        }
+//    } else if(musicSet.isCyclickSong){
+//        musicSet.elapsed_time = 0;
+//        musicSet.signal_period = 1000000 / song.freq[0];
+//        musicSet.songState = STATE_NOTE_SET;
+//        musicSet.noteNumber = 0;
+//        if(SysTick_Config(48000000/1000)){while(1); /*trap*/}
+//    }
+//}
 void speakerInit(){ // Settings for small and big speaker
     RCC_AHBPeriphClockCmd(RCC_AHBENR_SPEAKEREN, ENABLE);
     GPIO_InitTypeDef GPIOx_ini;
@@ -121,22 +120,22 @@ void playSong(uint8_t speakerType, const uint16_t *curSong, const uint8_t* songB
         while (elapsed_time < 1000*((uint32_t)((song.wholeNoteLen*song.beats[i])/255))) {
             if(song.freq[i] != P){
                 speakerType == SPEAKER_TYPE_MINI ? SPEAKER_MINI(SET): SPEAKER_BIG(SET);
-                delay(signal_period/2);
+                delayUs(signal_period/2);
                 speakerType == SPEAKER_TYPE_MINI ? SPEAKER_MINI(RESET): SPEAKER_BIG(RESET);
-                delay(signal_period/2);
+                delayUs(signal_period/2);
             } else{
-                delay(1000*((uint32_t)((song.wholeNoteLen*song.beats[i])/255)));
+                delayUs(1000*((uint32_t)((song.wholeNoteLen*song.beats[i])/255)));
                 break;
             }
             elapsed_time += signal_period;
             #ifdef BUTTON_BACK
                 if(isButtonPressed(BUTTON_BACK)){
-                    delay(400000);
+                    delayUs(400000);
                     return;
                 }
             #endif
         }
-        delay(NOTES_PAUSE);
+        delayUs(NOTES_PAUSE);
     }
 }
 
@@ -167,73 +166,73 @@ void fillSpeakerMenuBuffer(){
     lcdStruct.byteIndex = 0x00;
     int i;
     for(i = 0; i < SPEAKER_MENU_COUNT; i++){
-        lcdStruct.writeSymbolToBuffer(menuBuffer, (i == currentItem) ? '>' : ' ');
-        lcdStruct.writeStringToBuffer(menuBuffer, SPEAKER_MENU_ITEMS[i]);
+        lcdStruct.writeStringToBuffer((i == currentItem) ? ">" : " ");
+        lcdStruct.writeStringToBuffer(SPEAKER_MENU_ITEMS[i]);
     }
 }
 void drawChooseMenu(uint8_t choose){
     lcdStruct.byteIndex = 2*DISPLAY_WIDTH;
-    lcdStruct.writeStringToBuffer(menuBuffer, (choose == 0? ">small   big" : " small  >big"));
-    LCD_DrawPageFromBuffer(menuBuffer, PAGE_3);
+    lcdStruct.writeStringToBuffer((choose == 0? ">small   big" : " small  >big"));
+    LCD_DrawPageFromBuffer(PAGE_3);
 }
 
 uint8_t chooseSpeakerType(){    
     lcdStruct.byteIndex = 0x00;
-    lcdStruct.writeStringToBuffer(menuBuffer, "Choose speaker");
+    lcdStruct.writeStringToBuffer("Choose speaker");
     lcdStruct.byteIndex = 2*DISPLAY_WIDTH;
-    lcdStruct.writeStringToBuffer(menuBuffer, ">small   big");
-    lcdStruct.displayFullUpdate(menuBuffer);
+    lcdStruct.writeStringToBuffer(">small   big");
+    lcdStruct.displayFullUpdate();
     
     uint8_t curChoose = 0;
     while(1){
         if(isButtonPressed(BUTTON_LEFT)){
-            delay(10000);
+            delayUs(10000);
             curChoose -= (curChoose == 0 ? 0 : 1);
             drawChooseMenu(curChoose);
         }
         if(isButtonPressed(BUTTON_RIGHT)){
-            delay(10000);
+            delayUs(10000);
             curChoose += (curChoose == 1 ? 0 : 1);
             drawChooseMenu(curChoose);
         }
         if(isButtonPressed(BUTTON_SELECT)){
-            delay(10000);
+            delayUs(10000);
             lcdStruct.clearOrFillDisplay(CLEAR);
             return curChoose;
         }
-        delay(100000);
+        delayUs(100000);
     }
 }
 
 void speakerMenu(){
     lcdStruct.clearOrFillDisplay(CLEAR);
-    memset(menuBuffer, 0x00, LCD_BUFFER_LENGTH);
+    memset(displayBuffer, 0x00, LCD_BUFFER_LENGTH);
     
     uint8_t curSpeaker = chooseSpeakerType();
     
     
     fillSpeakerMenuBuffer();
-    lcdStruct.displayFullUpdate(menuBuffer);
+    lcdStruct.displayFullUpdate();
     
     while(1){
         if(isButtonPressed(BUTTON_TOP)){
-            delay(300000);
+            delayUs(buttonDelayUs);
             currentItem -= (currentItem == 0 ? 0 : 1);
             
             fillSpeakerMenuBuffer();
-            lcdStruct.displayFullUpdate(menuBuffer);
+            lcdStruct.displayFullUpdate();
         }
         
         if(isButtonPressed(BUTTON_BOTOOM)){
-            delay(300000);
+            delayUs(buttonDelayUs);
             currentItem += (currentItem >= SPEAKER_MENU_COUNT-1 ? 0 : 1);
             
             fillSpeakerMenuBuffer();
-            lcdStruct.displayFullUpdate(menuBuffer);
+            lcdStruct.displayFullUpdate();
         }
         
         if(isButtonPressed(BUTTON_SELECT)){
-            delay(500000);
+            delayUs(500000);
             switch(currentItem){
                 case 0:
                     playBackgroundSong(curSpeaker, StarWars_MainTheme, StarWars_MainTheme_Beats, sizeof(StarWars_MainTheme)/2, 108,0);

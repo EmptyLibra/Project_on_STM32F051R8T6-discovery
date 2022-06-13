@@ -1,28 +1,41 @@
+/**
+  * @file    my_uart.c
+  * @author  Shalaev Egor
+  * @version V0.0.1
+  * @date    05-June-2022
+  * @brief   Библиотека для настройки UART1 и отправка по нему сообщений (PA9 - TX, PA10 - RX). 
+  * Этот USART1 используется как UART1 для общения с bluetooth модулем HC05.
+  * Формат данных для общения с ним: 0xCCAA
+  * C - два байта команды, первая A - всегда 0x0D, вторая A - всегда 0x0A.  */
+  
 #include "my_uart.h"
 
-/* Receive data from Bluetooth, using USART (as UART).
-*  TX: PA9, RX: PA10
-*  Data format: 0xCAA.
-*  C - command byte, first A - always 0x0D, second A - always 0x0A.
-*/
-
-/*===========================Variables and Structs==================================*/
+/*============================== Структуры и переменные ==============================*/
 FIFO_CREATE(my_fifo);                                     // my FIFO for uart
-uint32_t uart1_IT_RX_flag = 0, uart1_IT_TX_flag = 0;      // Successful reception and transmission flag
 
-/* For BlueTooth */
-static uint16_t commandByte = 0;   // BlueTooth command byte
+/*--- Для работы с Bluetooth ---*/
+static uint16_t commandByte = 0;   /* Тип команды по bluetooth */
+extern uint16_t IR_curButton;      /* Текущая нажатая IR-кнопка */
 
-/*===========================Functions==================================*/
-void USART1_IRQHandler(){ // interrupts handing
-    if(USART_GetITStatus(USART1, USART_IT_RXNE) == SET){
+/*============================== Функции ==============================*/
+/* Обработчик прерываний по USART1 (Команды от HC-05) */
+void USART1_IRQHandler()
+{
+    if(USART_GetITStatus(USART1, USART_IT_RXNE) == SET) {
+		/* Очистка флага и запись принятых данных в FIFO */
 		USART_ClearITPendingBit(USART1, USART_IT_RXNE);
 		FIFO_PUSH(my_fifo, UART_RECEIVE_DATA());
         
-        if(FIFO_COUNT_ELEMENTS(my_fifo) >= 4){
+		/* Если пришла целая команда */
+        if(FIFO_COUNT_ELEMENTS(my_fifo) >= 4) {
+			/* Записываем тип команды */
             commandByte = ((uint16_t)FIFO_POP(my_fifo) << 8) + (uint16_t)FIFO_POP(my_fifo);
-            if(FIFO_POP(my_fifo) == 0x0D){
-                if(FIFO_POP(my_fifo) == 0x0A){
+			
+			/* Если это корректная команда от HC-05 */
+            if(FIFO_POP(my_fifo) == 0x0D) {
+                if(FIFO_POP(my_fifo) == 0x0A) {
+					
+					/* Выбор действий в зависимости от команды */
                     switch(commandByte){
                         case BT_COMMAND_BUTTON_TOP:
                             IR_curButton = BUTTON_TOP;
@@ -60,71 +73,51 @@ void USART1_IRQHandler(){ // interrupts handing
                             playBackgroundSong(SPEAKER_TYPE_BIG, TetrisGameSong, TetrisGameSong_Beats, sizeof(TetrisGameSong)/2, 140,1);
                             musicSet.isCyclickSong = 1;
                             break;
-                        case 0x6666:
-                            sendDahatsu(DAHATSU_COMMAND_POWER_ON1, DAHATSU_COMMAND_POWER_ON2);
-                            break;
                         default:
-                            GPIO_WriteBit(GPIOC, LD4_PIN, (BitAction)(!GPIO_ReadOutputDataBit(GPIOC, LD4_PIN)));
+							LED_BLUE(!GPIO_ReadOutputDataBit(LEDS_PORT, LED_BLUE_PIN));
+							LED_GREEN(!GPIO_ReadOutputDataBit(LEDS_PORT, LED_GREEN_PIN));
+                            //GPIO_WriteBit(GPIOC, LD4_PIN, (BitAction)(!GPIO_ReadOutputDataBit(GPIOC, LD4_PIN)));
                     }
                 }
             }
+			/* Очищаем FIFO */
             FIFO_FLUSH(my_fifo);
         }
 	}
 }
 
-void uartPinsInit(void){
-    // enable clocking for port A and USART1
-    RCC_AHBPeriphClockCmd(RCC_AHBENR_UART1EN, ENABLE);
+/* Инициализация пинов UART (TX - PA9, RX - PA10) */
+void uartPinsInit(void)
+{
+    /* Включаем тактирование порта А и USART1 */
+    RCC_AHBPeriphClockCmd(RCC_AHBENR_UART_PORT_EN, ENABLE);
     RCC_APB2PeriphClockCmd(RCC_APB2ENR_USART1EN, ENABLE);
     
-    // PA10 - RX, PA9 - TX in alternative function
+    /* Настрока пинов PA10 - AF1 - RX, PA9 - AF1 - TX */
     GPIO_InitTypeDef GPIOx_ini;
-    GPIOx_ini.GPIO_Pin = UART1_TX_PIN | UART1_RX_PIN;
-    GPIOx_ini.GPIO_Mode = GPIO_Mode_AF;
-    GPIOx_ini.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIOx_ini.GPIO_OType = GPIO_OType_PP;
-    GPIOx_ini.GPIO_PuPd = GPIO_PuPd_UP;
-    GPIO_Init(UART1_PORT, &GPIOx_ini);
+    GPIOx_ini.GPIO_Pin = UART1_TX_PIN | UART1_RX_PIN;    /* Выбор пинов */
+    GPIOx_ini.GPIO_Mode = GPIO_Mode_AF;                  /* Выбор режима пина: альтернативная функция */
+    GPIOx_ini.GPIO_Speed = GPIO_Speed_50MHz;             /* Частота тактирования высокая -  50 МГц */
+    GPIOx_ini.GPIO_OType = GPIO_OType_PP;                /* Двухтактный (push-pull) выход */
+    GPIOx_ini.GPIO_PuPd = GPIO_PuPd_UP;                  /* Подтягивание к питанию */
+    GPIO_Init(UART1_PORT, &GPIOx_ini);                   /* Записываем данные в порт */
     
+	/* Выбор альтернативных функций для пинов */
     GPIO_PinAFConfig(UART1_PORT, UART1_RX_SOURCE, GPIO_AF_1);
     GPIO_PinAFConfig(UART1_PORT, UART1_TX_SOURCE, GPIO_AF_1);
-    // usart settings
-    NVIC_EnableIRQ(USART1_IRQn);   // enable interrupts
+    
+	/*----- Настройки USART1 -----*/
+    NVIC_EnableIRQ(USART1_IRQn);   /* Включаем прерывания для USART1 */
     
     USART_InitTypeDef USART_ini;
-    USART_ini.USART_BaudRate = 115200;
-    USART_ini.USART_WordLength = USART_WordLength_8b;
-    USART_ini.USART_StopBits = USART_StopBits_1;
-    USART_ini.USART_Parity = USART_Parity_No;
-    USART_ini.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-    USART_ini.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+    USART_ini.USART_BaudRate = 115200;                                     /* Скорость USART: 115200 бод */
+    USART_ini.USART_WordLength = USART_WordLength_8b;                      /* Длина слова: 8 бит */
+    USART_ini.USART_StopBits = USART_StopBits_1;                           /* Длина стоп бита: 1 бит */
+    USART_ini.USART_Parity = USART_Parity_No;                              /* Добавление бита четности: нет */
+    USART_ini.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;                  /* Режимы работы USART: приемник и передатчик */
+    USART_ini.USART_HardwareFlowControl = USART_HardwareFlowControl_None;  /* Для RS232 (контакт разрешение на отправку) */
     
-    USART_Init(USART1, &USART_ini);
-    USART_ITConfig(USART1, USART_IT_RXNE, ENABLE); 
-    USART_Cmd(USART1, ENABLE);
-}
-
-void startUartDataGetting(){
-    lcdStruct.clearOrFillDisplay(CLEAR);
-
-    while(1){
-        if(FIFO_COUNT_ELEMENTS(my_fifo) > 2){
-            commandByte = FIFO_POP(my_fifo);
-            if(FIFO_POP(my_fifo) == 0x0D){
-                if(FIFO_POP(my_fifo) == 0x0A){
-                    if(commandByte == 0x89){
-                        GPIO_WriteBit(GPIOC, LD4_PIN, (BitAction)(!GPIO_ReadOutputDataBit(GPIOC, LD4_PIN)));
-                    }
-                }
-            }
-            FIFO_FLUSH(my_fifo);
-        }
-        #ifdef BUTTON_BACK
-            if(isButtonPressed(BUTTON_BACK)){
-                lcdStruct.clearOrFillDisplay(CLEAR);
-                break;
-            }
-        #endif
-    }
+    USART_Init(USART1, &USART_ini);                 /* Инициалазация USART1 */
+    USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);  /* Разрешаем прерывания по приему */
+    USART_Cmd(USART1, ENABLE);                      /* Включаем USART1 */
 }

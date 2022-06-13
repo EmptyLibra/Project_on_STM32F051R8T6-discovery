@@ -1,96 +1,112 @@
+/**
+  * @file    lcd_main_menu.c
+  * @author  Shalaev Egor
+  * @version V0.0.1
+  * @date    05-June-2022
+  * @brief   Эта библиотека реализует взаимодействие экрана и пользователя.
+  *          В ней осуществляется отрисовка пунктов меню. */
+
 #include "lcd_main_menu.h"
 
+/*============================== Переменные ==============================*/
+/* Список меню */
 static char MENU_ITEMS[][11] = {
     "2048     ",
     "Snake    ",
     "Tetris   ",
     "Speaker  ",
-    "IR Test  ",
-    "Dahatsu  "
+    "IR Test  "
 };
-static char DAHATSU_MENU_ITEMS[][11] = {
-    "Power on ",
-    "None     "
-};
-static int currentItem = 0, dahatsuCurItem = 0;
+
+/* Индекс текущего элемента меню */
+static int currentItem = 0;
+
+/* Текущий ИК режим */
 static uint8_t irMode = 0;
-static uint8_t menuBuffer[LCD_BUFFER_LENGTH] = {0x00};
 //
-//----menu draw-----------------------------------------
-void LCD_FillMenuBuffer(){
-    memset(menuBuffer, 0, LCD_BUFFER_LENGTH);
+/*============================== Функции ==============================*/
+/* Заполнение буфера экрана элементами меню */
+static void LCD_FillMenuBuffer(void)
+{
+	/* Стираем буфер и обнуляем счетчик адреса */
+    memset(displayBuffer, 0, LCD_BUFFER_LENGTH);
     lcdStruct.byteIndex = 0x00;
-    int i;
-    for(i = 0; i < MENU_COUNT; i++){
-        lcdStruct.writeSymbolToBuffer(menuBuffer, (i == currentItem) ? '>' : ' ');
-        lcdStruct.writeStringToBuffer(menuBuffer, MENU_ITEMS[i]);
-        if((i%2 == 0) && (DISPLAY_WIDTH == 128)){
-            lcdStruct.writeSymbolToBuffer(menuBuffer, ' ');
+    
+    for(int i = 0; i < MENU_COUNT; i++) {
+		/* Если элемент меню является текущим, то рисуем стрелку выбора */
+        lcdStruct.writeStringToBuffer((i == currentItem) ? ">" : " ");
+		
+		/* Записываем элемент меню */
+        lcdStruct.writeStringToBuffer(MENU_ITEMS[i]);
+		
+		/* Ставим дополнительный пробел у второго столбца меню */
+        if((i%2 == 0) && (DISPLAY_WIDTH == 128)) {
+            lcdStruct.writeStringToBuffer(" ");
         }
     }
 }
 
-void drawIrMode(){
-    // write hello string
+/* Рисуем меню ИК-анализа-захвата */
+static void drawIrMode(void)
+{
     lcdStruct.byteIndex = DISPLAY_WIDTH*7;
     
     switch(irMode){
         case IR_MODE_TEST:
-            lcdStruct.writeStringToBuffer(menuBuffer, ">test  capture  send");
+            lcdStruct.writeStringToBuffer(">test  capture  send");
             break;
         case IR_MODE_CAPTURE:
-            lcdStruct.writeStringToBuffer(menuBuffer, " test >capture  send");
+            lcdStruct.writeStringToBuffer(" test >capture  send");
             break;
         case IR_MODE_SEND:
-            lcdStruct.writeStringToBuffer(menuBuffer, " test  capture >send");
+            lcdStruct.writeStringToBuffer(" test  capture >send");
     }
-    lcdStruct.displayFullUpdate(menuBuffer);
+    lcdStruct.displayFullUpdate();
 }
-void irProtocolAnalyze(){
+
+/* Анализируем ИК-сигнал и отображаем результат ?????????????????????*/
+static void irProtocolAnalyze(void)
+{
     irReceiveProt.receiveType = IR_RECEIVE_TYPE_TEST;
     lcdStruct.clearOrFillDisplay(CLEAR);
-    memset(menuBuffer, 0, LCD_BUFFER_LENGTH);
+    memset(displayBuffer, 0, LCD_BUFFER_LENGTH);
     
     lcdStruct.byteIndex = 0;
-    lcdStruct.writeStringToBuffer(menuBuffer, "IR test");
-    LCD_DrawPageFromBuffer(menuBuffer, PAGE_1);
+    lcdStruct.writeStringToBuffer("IR test");
+    LCD_DrawPageFromBuffer(PAGE_1);
     drawIrMode();
     
     char receiveStr[128];
     while(1){
         if(isButtonPressed(BUTTON_LEFT)){
-            delay(300000);
+            delayUs(buttonDelayUs);
             irMode -= (irMode == IR_MODE_TEST ? 0 : 1);
             isIrReceiveEn = 1;
             
             drawIrMode();
         }
         if(isButtonPressed(BUTTON_RIGHT)){
-            delay(300000);
+            delayUs(buttonDelayUs);
             irMode += (irMode == IR_MODE_SEND ? 0 : 1);
 
             drawIrMode();
         }
         if(isButtonPressed(BUTTON_SELECT)){
-            delay(300000);
+            delayUs(buttonDelayUs);
             if(irMode == IR_MODE_SEND){
                 isIrReceiveEn = 0;
                 if(irReceiveProt.currProtocolType == IR_PROTOCOL_TYPE_NEC){
-                    LD3(SET);
+                    LED_GREEN(SET);
                     sendNEC((uint32_t)irReceiveProt.receiveIRData1);
-                    LD3(RESET);
+                    LED_GREEN(RESET);
                 } else if(irReceiveProt.currProtocolType == IR_PROTOCOL_TYPE_PANASONIC){
-                    LD3(SET);
+                    LED_GREEN(SET);
                     sendPanasonic(irReceiveProt.receiveIRData1);
-                    LD3(RESET);
-                } else if(irReceiveProt.currProtocolType == IR_PROTOCOL_TYPE_DAHATSU){
-                    LD3(SET);
-                    sendDahatsu(irReceiveProt.receiveIRData1, irReceiveProt.receiveIRData2);
-                    LD3(RESET);
+                    LED_GREEN(RESET);
                 }else {
-                    LD4(SET);
-                    delay(300000);
-                    LD4(RESET);
+                    LED_BLUE(SET);
+                    delayUs(buttonDelayUs);
+                    LED_BLUE(RESET);
                 }
             } else {
                 isIrReceiveEn = 1;
@@ -99,79 +115,65 @@ void irProtocolAnalyze(){
         
         if(irReceiveProt.isProtocolReceive && irMode != IR_MODE_SEND){
             irReceiveProt.isProtocolReceive = 0;
-            memset(menuBuffer, 0, LCD_BUFFER_LENGTH);
+            memset(displayBuffer, 0, LCD_BUFFER_LENGTH);
             
             lcdStruct.clearOrFillDisplay(CLEAR);
             lcdStruct.byteIndex = 0;
-            lcdStruct.writeStringToBuffer(menuBuffer, "IR test: ");
+            lcdStruct.writeStringToBuffer("IR test: ");
             
             lcdStruct.byteIndex = DISPLAY_WIDTH;
-            lcdStruct.writeStringToBuffer(menuBuffer, "Preambula(us):");
-            sprintf(receiveStr, "%05d", ((unsigned int)irReceiveProt.preambula)*10);
-            LCD_WritePartOfStringToBuffer(menuBuffer, receiveStr, 5);
+            lcdStruct.writeStringToBuffer("Preambula(us):");
+			
+			char receiveStr_5[5] = {0};
+            sprintf(receiveStr_5, "%05d", ((unsigned int)irReceiveProt.preambula)*10);
+            lcdStruct.writeStringToBuffer(receiveStr_5);
             
+			char receiveStr_4[5] = {0};
+			char receiveStr_8[9] = {0};
             switch(irReceiveProt.currProtocolType){
                 // NEC protocol
                 case IR_PROTOCOL_TYPE_NEC:
                     lcdStruct.byteIndex = 54;
-                    lcdStruct.writeStringToBuffer(menuBuffer, "NEC");
+                    lcdStruct.writeStringToBuffer("NEC");
                 
                     lcdStruct.byteIndex = DISPLAY_WIDTH*2;
-                    sprintf(receiveStr, "%08X", (unsigned int) irReceiveProt.receiveIRData1);
-                    LCD_WritePartOfStringToBuffer(menuBuffer, receiveStr, 8);
+                    sprintf(receiveStr_8, "%08X", (unsigned int) irReceiveProt.receiveIRData1);
+				
+                    lcdStruct.writeStringToBuffer(receiveStr_8);
                     break;
                 
                 // PANASONIC protocol
                 case IR_PROTOCOL_TYPE_PANASONIC:
                     lcdStruct.byteIndex = 54;
-                    lcdStruct.writeStringToBuffer(menuBuffer, "Panasonic");
+                    lcdStruct.writeStringToBuffer("Panasonic");
                     
                     lcdStruct.byteIndex = DISPLAY_WIDTH*2;
-                    sprintf(receiveStr, "%04X", (unsigned int)(irReceiveProt.receiveIRData1 >> 32));
-                    LCD_WritePartOfStringToBuffer(menuBuffer, receiveStr, 4);
+                    sprintf(receiveStr_4, "%04X", (unsigned int)(irReceiveProt.receiveIRData1 >> 32));
+                    lcdStruct.writeStringToBuffer(receiveStr_4);
                     
-                    sprintf(receiveStr, "%08X", (unsigned int)irReceiveProt.receiveIRData1);
-                    LCD_WritePartOfStringToBuffer(menuBuffer, receiveStr, 8);
-                    break;
-                
-                case IR_PROTOCOL_TYPE_DAHATSU:
-                    lcdStruct.byteIndex = 54;
-                    lcdStruct.writeStringToBuffer(menuBuffer, "Dahatsu");
-                    
-                    lcdStruct.byteIndex = DISPLAY_WIDTH*2;
-                    sprintf(receiveStr, "%08X", (unsigned int)(irReceiveProt.receiveIRData1 >> 32));
-                    LCD_WritePartOfStringToBuffer(menuBuffer, receiveStr, 8);
-                    
-                    sprintf(receiveStr, "%08X", (unsigned int)irReceiveProt.receiveIRData1);
-                    LCD_WritePartOfStringToBuffer(menuBuffer, receiveStr, 8);
-                    
-                    lcdStruct.byteIndex = DISPLAY_WIDTH*3;
-                    sprintf(receiveStr, "%08X", (unsigned int)(irReceiveProt.receiveIRData2 >> 32));
-                    LCD_WritePartOfStringToBuffer(menuBuffer, receiveStr, 8);
-                
-                    sprintf(receiveStr, "%08X", (unsigned int)irReceiveProt.receiveIRData2);
-                    LCD_WritePartOfStringToBuffer(menuBuffer, receiveStr, 8);
+                    sprintf(receiveStr_8, "%08X", (unsigned int)irReceiveProt.receiveIRData1);
+                    lcdStruct.writeStringToBuffer(receiveStr_8);
                     break;
                 
                 // other protocols
                 default:
                     lcdStruct.byteIndex = 54;
-                    lcdStruct.writeStringToBuffer(menuBuffer, "Unknown");
+                    lcdStruct.writeStringToBuffer("Unknown");
                     lcdStruct.byteIndex = DISPLAY_WIDTH*2;
                     
-                    sprintf(receiveStr, "%08X", (unsigned int) (irReceiveProt.receiveIRData2 >> 32));
-                    LCD_WritePartOfStringToBuffer(menuBuffer, receiveStr, 8);
+                    sprintf(receiveStr_8, "%08X", (unsigned int) (irReceiveProt.receiveIRData2 >> 32));
+                    lcdStruct.writeStringToBuffer(receiveStr_8);
                     
-                    sprintf(receiveStr, "%08X", (unsigned int) irReceiveProt.receiveIRData2);
-                    LCD_WritePartOfStringToBuffer(menuBuffer, receiveStr, 8);
+                    sprintf(receiveStr_8, "%08X", (unsigned int) irReceiveProt.receiveIRData2);
+                    lcdStruct.writeStringToBuffer(receiveStr_8);
                 
                     lcdStruct.byteIndex = DISPLAY_WIDTH*3;
                     if(irReceiveProt.dataReceiveCount > 65/4){                        
-                        sprintf(receiveStr, "%08X", (unsigned int) (irReceiveProt.receiveIRData1 >> 32));
-                        LCD_WritePartOfStringToBuffer(menuBuffer, receiveStr, 8);
+                        sprintf(receiveStr_8, "%08X", (unsigned int) (irReceiveProt.receiveIRData1 >> 32));
+                        lcdStruct.writeStringToBuffer(receiveStr_8);
                         
-                        sprintf(receiveStr, "%08X", (unsigned int) irReceiveProt.receiveIRData1);
-                        LCD_WritePartOfStringToBuffer(menuBuffer, receiveStr, 8);
+                        sprintf(receiveStr_8, "%08X", (unsigned int) irReceiveProt.receiveIRData1);
+                        lcdStruct.writeStringToBuffer(receiveStr_8);
                     }
                     break;
             }
@@ -180,7 +182,7 @@ void irProtocolAnalyze(){
                 isIrReceiveEn = 0;
             }
             drawIrMode();
-            lcdStruct.displayFullUpdate(menuBuffer);
+            lcdStruct.displayFullUpdate();
         }
         if(isButtonPressed(BUTTON_BACK)){
             isIrReceiveEn = 1;
@@ -191,171 +193,89 @@ void irProtocolAnalyze(){
     }
 }
 
-void fillDahatsuMenu(){
-    memset(menuBuffer, 0, LCD_BUFFER_LENGTH);
-    lcdStruct.byteIndex = 0x00;
-    int i;
-    for(i = 0; i < DAHATSU_MENU_COUNT; i++){
-        lcdStruct.writeSymbolToBuffer(menuBuffer, (i == dahatsuCurItem) ? '>' : ' ');
-        lcdStruct.writeStringToBuffer(menuBuffer, DAHATSU_MENU_ITEMS[i]);
-        if((i%2 == 0) && (DISPLAY_WIDTH == 128)){
-            lcdStruct.writeSymbolToBuffer(menuBuffer, ' ');
-        }
-    }
-}
-void dahatsuMenu(){
-    lcdStruct.clearOrFillDisplay(CLEAR);
-    dahatsuCurItem = 0;
-    fillDahatsuMenu();
-    lcdStruct.displayFullUpdate(menuBuffer);
-    
-    while(1){
-        if(isButtonPressed(BUTTON_RIGHT))
-        {
-            delay(300000);
-            dahatsuCurItem += (dahatsuCurItem == DAHATSU_MENU_COUNT-1 ? 0 : 1);
-            
-            fillDahatsuMenu();
-            lcdStruct.displayFullUpdate(menuBuffer);
-        }
-        if(isButtonPressed(BUTTON_LEFT))
-        {
-            delay(300000);
-            dahatsuCurItem -= (dahatsuCurItem == 0 ? 0 : 1);
-            
-            fillDahatsuMenu();
-            lcdStruct.displayFullUpdate(menuBuffer);
-        }
-        if(isButtonPressed(BUTTON_TOP)){
-            delay(300000);
-            dahatsuCurItem -= (dahatsuCurItem < 2 ? 0 : 2);
-            
-            fillDahatsuMenu();
-            lcdStruct.displayFullUpdate(menuBuffer);
-        }
-        
-        if(isButtonPressed(BUTTON_BOTOOM)){
-            delay(300000);
-            dahatsuCurItem += (dahatsuCurItem >= DAHATSU_MENU_COUNT-2 ? 0 : 2);
-            
-            fillDahatsuMenu();
-            lcdStruct.displayFullUpdate(menuBuffer);
-        }
-        
-        if(isButtonPressed(BUTTON_SELECT)){
-            delay(500000);
-            switch(dahatsuCurItem){
-                case 0:
-                    sendDahatsu(DAHATSU_COMMAND_POWER_ON1, DAHATSU_COMMAND_POWER_ON2);
-                    break;
-                case 1:
-                    break;
-                default: ;
-            }
-        }
-        
-        if(isButtonPressed(BUTTON_BACK)){
-            lcdStruct.clearOrFillDisplay(CLEAR);
-            return;
-        }
-    }
-}
 //
-//----start function------------------------------
-void LCD_StartMainMenu(){
+/* Функция запуска основного меню */
+void LCD_StartMainMenu()
+{
+	/* Мигание дисплея */
 	lcdStruct.clearOrFillDisplay(FILL);
-    delay(500000);
+    delayUs(500000);
     lcdStruct.clearOrFillDisplay(CLEAR);
     
+	/* Заполняем экран элементами меню и отрисовываем их */
     LCD_FillMenuBuffer();
-    lcdStruct.displayFullUpdate(menuBuffer);
+    lcdStruct.displayFullUpdate();
     
+	/* Основной цикл работы с меню */
     while(1){
+		/* Движение вправо по списку */
         if(isButtonPressed(BUTTON_RIGHT))
         {
-            delay(300000);
+            delayUs(buttonDelayUs);
             currentItem += (currentItem == MENU_COUNT-1 ? 0 : 1);
             
             LCD_FillMenuBuffer();
-            lcdStruct.displayFullUpdate(menuBuffer);
+            lcdStruct.displayFullUpdate();
         }
+		
+		/* Движение влево по списку */
         if(isButtonPressed(BUTTON_LEFT))
         {
-            delay(300000);
+            delayUs(buttonDelayUs);
             currentItem -= (currentItem == 0 ? 0 : 1);
             
             LCD_FillMenuBuffer();
-            lcdStruct.displayFullUpdate(menuBuffer);
+            lcdStruct.displayFullUpdate();
         }
         
-        #ifdef MH046
-            if(isButtonPressed(BUTTON_BOTOOM))
-            {
-                delay(500000);
-                switch(currentItem){
-                    case 0:
-                        startGame2048();
-                        break;
-                    case 1:
-                        startSnakeGame();
-                        break;
-                    default: ;
-                        
-                }
-                LCD_FillMenuBuffer();
-                lcdStruct.displayFullUpdate(menuBuffer);
-            }
-        #else
-            if(isButtonPressed(BUTTON_TOP))
-            {
-                delay(300000);
-                currentItem -= (currentItem < 2 ? 0 : 2);
-                
-                LCD_FillMenuBuffer();
-                lcdStruct.displayFullUpdate(menuBuffer);
-            }
-            
-            if(isButtonPressed(BUTTON_BOTOOM))
-            {
-                delay(300000);
-                currentItem += (currentItem >= MENU_COUNT-2 ? 0 : 2);
-                
-                LCD_FillMenuBuffer();
-                lcdStruct.displayFullUpdate(menuBuffer);
-            }
-            
-            if(isButtonPressed(BUTTON_SELECT)){
-                delay(500000);
-                switch(currentItem){
-                    case 0:
-                        startGame2048();
-//                        for(uint8_t i = 0; i < 16; i++){
-//                            sendPanasonic(0x40040100BCBD);
-//                            delay(70000);
-//                        }
-                        break;
-                    case 1:
-                        startSnakeGame();
-                        break;
-                    case 2:
-                        startTetrisGame();
-                        break;
-                    case 3:
-                        lcdStruct.clearOrFillDisplay(CLEAR);
-                        speakerMenu();
-                        break;
-                    case 4:
-                        irProtocolAnalyze();
-                        break;
-                    case 5:
-                        dahatsuMenu();
-                        break;
-                    default: ;
-                }
-                LCD_FillMenuBuffer();
-                lcdStruct.displayFullUpdate(menuBuffer);
-            }
-        #endif
+		/* Движение вверх по списку */
+		if(isButtonPressed(BUTTON_TOP))
+		{
+			delayUs(buttonDelayUs);
+			currentItem -= (currentItem < 2 ? 0 : 2);
+			
+			LCD_FillMenuBuffer();
+			lcdStruct.displayFullUpdate();
+		}
+		
+		/* Движение вниз по списку */
+		if(isButtonPressed(BUTTON_BOTOOM))
+		{
+			delayUs(buttonDelayUs);
+			currentItem += (currentItem >= MENU_COUNT-2 ? 0 : 2);
+			
+			LCD_FillMenuBuffer();
+			lcdStruct.displayFullUpdate();
+		}
+		
+		/* Выбор элемента списка */
+		if(isButtonPressed(BUTTON_SELECT)) {
+			/* Задержка, чтобы дождаться, когда пользователь отпустит кнопку */
+			delayUs(400000);
+			
+			/* Запуск того или иного события */
+			switch(currentItem) {
+				case 0:
+					startGame2048();
+					break;
+				case 1:
+					startSnakeGame();
+					break;
+				case 2:
+					startTetrisGame();
+					break;
+				case 3:
+					lcdStruct.clearOrFillDisplay(CLEAR);
+					speakerMenu();
+					break;
+				case 4:
+					irProtocolAnalyze();
+					break;
+				default: ;
+			}
+			/* Отрисовка меню заново при выходе из пункта меню */
+			LCD_FillMenuBuffer();
+			lcdStruct.displayFullUpdate();
+		}
     }
 }
-

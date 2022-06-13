@@ -1,7 +1,6 @@
 #include "game_tetris.h"
 
 //=================Variables====================================================
-static uint8_t playerField[LCD_BUFFER_LENGTH] = {0x00};
 static int curFigX = 0, curFigY = 8; // coord of up right corner of figure
 static uint16_t curFigType = 0, nextFigType = 0, score = 0, winScore = 60000,lines = 0;
 static uint8_t curFig[8] = {0x00};
@@ -98,7 +97,7 @@ void gameInit(){
     score = 0; lines = 0;
     curDelay = 100000;
     fisrtStart = 1;
-    memset(playerField, 0, LCD_BUFFER_LENGTH);
+    memset(displayBuffer, 0, LCD_BUFFER_LENGTH);
     
     // generated current and next figure
     genNextFigType();
@@ -109,11 +108,11 @@ void gameInit(){
     // write border line
     uint16_t index;
     for(index = 0; index < DISPLAY_WIDTH; index++){
-        playerField[(TETRIS_FIELD_WIDTH/8)*DISPLAY_WIDTH + index] |= (0x01 << TETRIS_FIELD_WIDTH%8);
+        displayBuffer[(TETRIS_FIELD_WIDTH/8)*DISPLAY_WIDTH + index] |= (0x01 << TETRIS_FIELD_WIDTH%8);
     }
     
     updateScoreAndFigure();
-    lcdStruct.displayFullUpdate(playerField);
+    lcdStruct.displayFullUpdate();
 }
 //
 //---other functions----------------------
@@ -128,7 +127,7 @@ uint8_t tgm3Randomizer(){
     };
     
     // special first piece
-    uint8_t firstPiece = TIMER->CNT % 4;
+    uint8_t firstPiece = GAME_TIMER->CNT % 4;
     static uint8_t firstGen = 1;
     if(firstGen){
         firstGen = 0;
@@ -140,7 +139,7 @@ uint8_t tgm3Randomizer(){
     uint8_t roll, i, piece;
     while(1){
         for(roll = 0; roll <6; roll++){
-            i = TIMER->CNT % 35;
+            i = GAME_TIMER->CNT % 35;
             piece = pool[i];            
             
             uint8_t isExist = 0, j;
@@ -188,7 +187,7 @@ void writeFigToField(){
     // if empty string of figure is behind the screen right
     if(curFigY < 0){
         for(col = 0; col < 8; col++){
-            playerField[curFigX+col] |= (curFig[col] >> -curFigY);
+            displayBuffer[curFigX+col] |= (curFig[col] >> -curFigY);
         }
         return;
     }
@@ -196,7 +195,7 @@ void writeFigToField(){
     // the same, but left
     if(curFigY > DISPLAY_HEIGHT-8){
         for(col = 0; col < 8; col++){
-            playerField[DISPLAY_HEIGHT/8*DISPLAY_WIDTH + curFigX+col] |= (curFig[col] << curFigY%8);
+            displayBuffer[DISPLAY_HEIGHT/8*DISPLAY_WIDTH + curFigX+col] |= (curFig[col] << curFigY%8);
         }
         return;
     }
@@ -208,26 +207,26 @@ void writeFigToField(){
     // if all on one page
     if(row == curFigY+8){
         for(col = 0; col < 8; col++){
-            playerField[(curFigY >> 3)*DISPLAY_WIDTH + curFigX+col] |= curFig[col];
+            displayBuffer[(curFigY >> 3)*DISPLAY_WIDTH + curFigX+col] |= curFig[col];
         }
         return;
     }
     
     // write to first page
     for(col = 0; col < 8; col++){
-        playerField[(curFigY >> 3)*DISPLAY_WIDTH + curFigX+col] |= (curFig[col] << (8-(row - curFigY)));
+        displayBuffer[(curFigY >> 3)*DISPLAY_WIDTH + curFigX+col] |= (curFig[col] << (8-(row - curFigY)));
     }
     
     // write to second page
     for(col = 0; col < 8; col++){
-        playerField[(row >> 3)*DISPLAY_WIDTH + curFigX+col] |= (curFig[col] >> (row - curFigY));
+        displayBuffer[(row >> 3)*DISPLAY_WIDTH + curFigX+col] |= (curFig[col] >> (row - curFigY));
     }
 }
 
 uint8_t isLost(){
     uint8_t row;
     for(row = 0 ; row < TETRIS_FIELD_WIDTH; row++){
-        if(playerField[(row/8)*DISPLAY_WIDTH] & (0x01 << (row%8))) return 1;
+        if(displayBuffer[(row/8)*DISPLAY_WIDTH] & (0x01 << (row%8))) return 1;
     }
     return 0;
 }
@@ -235,26 +234,26 @@ void shiftAllDown(uint16_t lineNumber){
     int col, newcol = lineNumber-1;
     for(col = lineNumber; col > 0; newcol--, col--){
         // miss empty lines
-        while(playerField[newcol] == 0x00 && playerField[DISPLAY_WIDTH + newcol] == 0x00 && 
-            (playerField[2*DISPLAY_WIDTH + newcol]&0x0F) == 0x00){
+        while(displayBuffer[newcol] == 0x00 && displayBuffer[DISPLAY_WIDTH + newcol] == 0x00 && 
+            (displayBuffer[2*DISPLAY_WIDTH + newcol]&0x0F) == 0x00){
                 newcol--;
                 if(newcol <= 0) break;
         }
         
         if(newcol <= 0) break;
         
-        playerField[col] = playerField[newcol];
-        playerField[DISPLAY_WIDTH + col] = playerField[DISPLAY_WIDTH + newcol];
-        playerField[2*DISPLAY_WIDTH + col] |= playerField[2*DISPLAY_WIDTH + newcol] & 0x0F;
+        displayBuffer[col] = displayBuffer[newcol];
+        displayBuffer[DISPLAY_WIDTH + col] = displayBuffer[DISPLAY_WIDTH + newcol];
+        displayBuffer[2*DISPLAY_WIDTH + col] |= displayBuffer[2*DISPLAY_WIDTH + newcol] & 0x0F;
         
-        playerField[newcol] = 0x00;
-        playerField[DISPLAY_WIDTH + newcol] = 0x00;
-        playerField[2*DISPLAY_WIDTH + newcol] &= 0xF0;
+        displayBuffer[newcol] = 0x00;
+        displayBuffer[DISPLAY_WIDTH + newcol] = 0x00;
+        displayBuffer[2*DISPLAY_WIDTH + newcol] &= 0xF0;
     }
     
-    playerField[col] = 0x00;
-    playerField[DISPLAY_WIDTH + col] = 0x00;
-    playerField[2*DISPLAY_WIDTH + col] = playerField[2*DISPLAY_WIDTH + col] & 0xF0;
+    displayBuffer[col] = 0x00;
+    displayBuffer[DISPLAY_WIDTH + col] = 0x00;
+    displayBuffer[2*DISPLAY_WIDTH + col] = displayBuffer[2*DISPLAY_WIDTH + col] & 0xF0;
 }
 
 void checkAndShiftLines(){
@@ -263,16 +262,16 @@ void checkAndShiftLines(){
     // delete full lines
     for(col = DISPLAY_WIDTH-1; col > 0; col--){
         // if the line is full
-        if(playerField[col] == 0xFF && playerField[DISPLAY_WIDTH + col] == 0xFF &&
-            (playerField[2*DISPLAY_WIDTH + col]&0x0F) == 0x0F){
+        if(displayBuffer[col] == 0xFF && displayBuffer[DISPLAY_WIDTH + col] == 0xFF &&
+            (displayBuffer[2*DISPLAY_WIDTH + col]&0x0F) == 0x0F){
             // delete line
-            playerField[col] = 0x00;
-            playerField[DISPLAY_WIDTH + col] = 0x00;
-            playerField[2*DISPLAY_WIDTH + col] &= 0xF0;
+            displayBuffer[col] = 0x00;
+            displayBuffer[DISPLAY_WIDTH + col] = 0x00;
+            displayBuffer[2*DISPLAY_WIDTH + col] &= 0xF0;
             
-            playerField[col-1] = 0x00;
-            playerField[DISPLAY_WIDTH + col-1] = 0x00;
-            playerField[2*DISPLAY_WIDTH + col-1] &= 0xF0;
+            displayBuffer[col-1] = 0x00;
+            displayBuffer[DISPLAY_WIDTH + col-1] = 0x00;
+            displayBuffer[2*DISPLAY_WIDTH + col-1] &= 0xF0;
             
             if(!firstLine) firstLine = col;
             emptyLineCount += 2;
@@ -303,65 +302,32 @@ void checkAndShiftLines(){
     }
 }
 
-void writeHorStringToBuffer(uint8_t *pBuff, const char* str){
-    uint8_t currentRow = (lcdStruct.byteIndex/DISPLAY_WIDTH+1)*8-1;
-    
-    int i, j, k, rowCount = (lcdStruct.byteIndex%DISPLAY_WIDTH)/8;
-    
-	for(i = 0; str[i] != 0; i++)
-	{
-		if(lcdStruct.byteIndex > (LCD_BUFFER_LENGTH - 6)) lcdStruct.byteIndex = 0;
-    
-        if((DISPLAY_WIDTH - lcdStruct.byteIndex%DISPLAY_WIDTH < 6)){
-            lcdStruct.byteIndex += DISPLAY_WIDTH - lcdStruct.byteIndex%DISPLAY_WIDTH;
-        }
-        
-        // write one symbol to displayBuffer
-        for(j = 0; j < 6; j++)
-        {
-            // write one horizontal byte
-            for(k = 0; k < 8; k++){
-                if((((uint8_t) LIBRARY_SYMBOL[ (str[i] * 6) + j ] >> k) & 0x01)){
-                    pBuff[currentRow/8*DISPLAY_WIDTH + rowCount*8+k] |= 0x01 << currentRow%8;
-                } else{
-                    pBuff[currentRow/8*DISPLAY_WIDTH + rowCount*8+k] &= ~(0x01 << currentRow%8);
-                }
-            }
-            if(currentRow == 0){
-                currentRow = (lcdStruct.byteIndex/DISPLAY_WIDTH+1)*8-1;
-                rowCount++;
-            }
-            currentRow--;
-        }
-	}
-}
-
 void updateScoreAndFigure(){
     lcdStruct.byteIndex = DISPLAY_WIDTH*7;
-    writeHorStringToBuffer(playerField, " Next");
+    LCD_writeHorStringToBuffer(" Next");
     
     // draw next figure
     uint8_t i;
     for(i = 0; i < 8; i++){
-        playerField[DISPLAY_WIDTH*5 + 9 + i] = FIGURES[nextFigType*8 + i];
+        displayBuffer[DISPLAY_WIDTH*5 + 9 + i] = FIGURES[nextFigType*8 + i];
     }
     
     // draw score
     lcdStruct.byteIndex = DISPLAY_WIDTH*7+24;
-    writeHorStringToBuffer(playerField, "Score:");
+    LCD_writeHorStringToBuffer("Score:");
     
     char receiveString[5];
     sprintf(receiveString, "%05u", score);
     lcdStruct.byteIndex = DISPLAY_WIDTH*7+32 ;
-    writeHorStringToBuffer(playerField, receiveString);
+    LCD_writeHorStringToBuffer(receiveString);
     
     // draw lines
     lcdStruct.byteIndex = DISPLAY_WIDTH*7+48;
-    writeHorStringToBuffer(playerField, "Lines:");
+    LCD_writeHorStringToBuffer("Lines:");
     
     sprintf(receiveString, "%05u", lines);
     lcdStruct.byteIndex = DISPLAY_WIDTH*7+56;
-    writeHorStringToBuffer(playerField, receiveString);
+    LCD_writeHorStringToBuffer(receiveString);
 }
 //
 //---move functions----------------
@@ -374,7 +340,7 @@ void rotate(){
     for(y = 0; y < 8; y++){
         for(x = curFigX; x < curFigX+8; x++){
             if(curFig[x - curFigX] & (1 << y)){
-                playerField[((curFigY+y)/8)*DISPLAY_WIDTH + x] &= ~(1 << ((curFigY+y)%8));
+                displayBuffer[((curFigY+y)/8)*DISPLAY_WIDTH + x] &= ~(1 << ((curFigY+y)%8));
             }
         }
     }
@@ -435,7 +401,7 @@ void rotate(){
     for(y = 0; y < 8; y++){
         for(x = 0; x < 8; x++){
             if(((buffer[x] >> y) & 0x01) && 
-                ((playerField[(curFigY+y)/8*DISPLAY_WIDTH + curFigX+x] >> (curFigY+y)%8) & 0x01)){
+                ((displayBuffer[(curFigY+y)/8*DISPLAY_WIDTH + curFigX+x] >> (curFigY+y)%8) & 0x01)){
                     curFigY = temp;
                     return;
                 }
@@ -468,7 +434,7 @@ void shiftLeft(){
     for(y = 0; y < 8; y++){
         for(x = curFigX; x < curFigX+8; x++){
             if(curFig[x - curFigX] & (1 << y)){
-                playerField[((curFigY+y)/8)*DISPLAY_WIDTH + x] &= ~(1 << ((curFigY+y)%8));
+                displayBuffer[((curFigY+y)/8)*DISPLAY_WIDTH + x] &= ~(1 << ((curFigY+y)%8));
             }
         }
     }
@@ -490,7 +456,7 @@ void shiftLeft(){
         for(y = 7; y >= 0; y--){
             for(x = curFigX+7; x >= curFigX; x--){
                 if((curFig[x - curFigX] & (0x01 << y)) && 
-                        (playerField[((curFigY+y+1)/8)*DISPLAY_WIDTH + x] & (0x01 << (curFigY+y+1)%8))){
+                        (displayBuffer[((curFigY+y+1)/8)*DISPLAY_WIDTH + x] & (0x01 << (curFigY+y+1)%8))){
                     possible = 0;
                     break;
                 }
@@ -511,7 +477,7 @@ void shiftRight(){
     for(y = 0; y < 8; y++){
         for(x = curFigX; x < curFigX+8; x++){
             if(curFig[x - curFigX] & (1 << y)){
-                playerField[((curFigY+y)/8)*DISPLAY_WIDTH + x] &= ~(1 << ((curFigY+y)%8));
+                displayBuffer[((curFigY+y)/8)*DISPLAY_WIDTH + x] &= ~(1 << ((curFigY+y)%8));
             }
         }
     }
@@ -533,7 +499,7 @@ void shiftRight(){
         for(y = 0; y < 8; y++){
             for(x = curFigX+7; x >= curFigX; x--){
                 if((curFig[x - curFigX] & (0x01 << y)) && 
-                        (playerField[((curFigY+y-1)/8)*DISPLAY_WIDTH + x] & (0x01 << (curFigY+y-1)%8))){
+                        (displayBuffer[((curFigY+y-1)/8)*DISPLAY_WIDTH + x] & (0x01 << (curFigY+y-1)%8))){
                     possible = 0;
                     break;
                 }
@@ -565,7 +531,7 @@ uint8_t shiftDown(){
     for(y = 0; y < 8; y++){
         for(x = curFigX; x < curFigX+8; x++){
             if(curFig[x - curFigX] & (1 << y)){
-                playerField[((curFigY+y)/8)*DISPLAY_WIDTH + x] &= ~(1 << ((curFigY+y)%8));
+                displayBuffer[((curFigY+y)/8)*DISPLAY_WIDTH + x] &= ~(1 << ((curFigY+y)%8));
             }
         }
     }
@@ -573,7 +539,7 @@ uint8_t shiftDown(){
     // can we shift figure down?
     for(y = 0; y < 8; y++){
         for(x = curFigX+7; x > curFigX; x--){
-            if((curFig[x - curFigX] & (0x01 << y)) && (playerField[((curFigY+y)/8)*DISPLAY_WIDTH + x+1] & (1 << (curFigY+y)%8))){
+            if((curFig[x - curFigX] & (0x01 << y)) && (displayBuffer[((curFigY+y)/8)*DISPLAY_WIDTH + x+1] & (1 << (curFigY+y)%8))){
                 possible = 0;
                 break;
             }
@@ -591,40 +557,40 @@ uint8_t shiftDown(){
 
 void drawSongMenuTetris(){
     lcdStruct.byteIndex = 30;
-    lcdStruct.writeStringToBuffer(playerField, "Play music?");
+    lcdStruct.writeStringToBuffer("Play music?");
     lcdStruct.byteIndex = DISPLAY_WIDTH*2 + 30;
     switch(isTetrisSong){
         case 0:
-            lcdStruct.writeStringToBuffer(playerField, ">no  yes");
+            lcdStruct.writeStringToBuffer(">no  yes");
             break;
         case 1:
-            lcdStruct.writeStringToBuffer(playerField, " no >yes");
+            lcdStruct.writeStringToBuffer(" no >yes");
             break;
     }
-    lcdStruct.displayFullUpdate(playerField);
+    lcdStruct.displayFullUpdate();
 }
 void songSelectTetris(){
-    memset(playerField, 0x00, LCD_BUFFER_LENGTH);
+    memset(displayBuffer, 0x00, LCD_BUFFER_LENGTH);
     isTetrisSong = 0;
     drawSongMenuTetris();
     
     while(1){
         if(isButtonPressed(BUTTON_LEFT)){
-            delay(10000);
+            delayUs(10000);
             isTetrisSong -= (isTetrisSong == 0 ? 0 : 1);
             drawSongMenuTetris();
         }
         if(isButtonPressed(BUTTON_RIGHT)){
-            delay(10000);
+            delayUs(10000);
             isTetrisSong += (isTetrisSong == 1 ? 0 : 1);
             drawSongMenuTetris();
         }
         if(isButtonPressed(BUTTON_SELECT)){
-            delay(10000);
+            delayUs(10000);
             lcdStruct.clearOrFillDisplay(CLEAR);
             return;
         }
-        delay(100000);
+        delayUs(100000);
     }
 }
 
@@ -642,7 +608,7 @@ void startTetrisGame(){
     
     uint8_t isShiftDown = 0, isShiftOrRotate = 0;
     while(1){
-        // update delay
+        // update delayUs
         curDelay = 100000 - score*10;
         
         if(curDelay < 0) curDelay = 0;
@@ -651,7 +617,7 @@ void startTetrisGame(){
             shiftRight();
             isShiftOrRotate = 1;
             if(curDelay <= 50000){
-                delay(90000);
+                delayUs(90000);
             }
         }
         
@@ -659,7 +625,7 @@ void startTetrisGame(){
             shiftLeft();
             isShiftOrRotate = 1;
             if(curDelay <= 50000){
-                delay(90000);
+                delayUs(90000);
             }
         }
         
@@ -667,7 +633,7 @@ void startTetrisGame(){
             rotate();
             isShiftOrRotate = 1;
             if(curDelay <= 50000){
-                delay(90000);
+                delayUs(90000);
             }
         }
         
@@ -675,15 +641,15 @@ void startTetrisGame(){
         if(isShiftOrRotate){
             writeFigToField();
         
-            LCD_DrawPageFromBuffer(playerField, PAGE_2);
+            LCD_DrawPageFromBuffer(PAGE_2);
             if(curFigY <= 8){
-                LCD_DrawPageFromBuffer(playerField, PAGE_1);
+                LCD_DrawPageFromBuffer(PAGE_1);
             } else {
-                LCD_DrawPageFromBuffer(playerField, PAGE_3);
+                LCD_DrawPageFromBuffer(PAGE_3);
             }
             
             if(curFigType == 6 && curFigY == 8){
-                LCD_DrawPageFromBuffer(playerField, PAGE_3);
+                LCD_DrawPageFromBuffer(PAGE_3);
             }
             isShiftOrRotate = 0;
         }
@@ -709,15 +675,15 @@ void startTetrisGame(){
                 writeFigToField();
                 
                 updateScoreAndFigure();
-                lcdStruct.displayFullUpdate(playerField);
+                lcdStruct.displayFullUpdate();
             }
             
             // draw player field
-            LCD_DrawPageFromBuffer(playerField, PAGE_2);
+            LCD_DrawPageFromBuffer(PAGE_2);
             if(curFigY <= 8){
-                LCD_DrawPageFromBuffer(playerField, PAGE_1);
+                LCD_DrawPageFromBuffer(PAGE_1);
             } else{
-                LCD_DrawPageFromBuffer(playerField, PAGE_3);
+                LCD_DrawPageFromBuffer(PAGE_3);
             }
         } while(isButtonPressed(BUTTON_RIGHT) && gameState != GAME_LOSE);
         
@@ -736,20 +702,20 @@ void startTetrisGame(){
         #ifdef BUTTON_SELECT
             if(isButtonPressed(BUTTON_SELECT)){
                 lcdStruct.byteIndex = DISPLAY_WIDTH*8-9;
-                writeHorStringToBuffer(playerField, "Pause");
-                lcdStruct.displayFullUpdate(playerField);
+                LCD_writeHorStringToBuffer("Pause");
+                lcdStruct.displayFullUpdate();
                 musicSet.isCyclickSong = 0;
                 musicSet.noteNumber = song.noteCount;
-                delay(1000000);
+                delayUs(1000000);
                 
                 while(!isButtonPressed(BUTTON_SELECT)){}
                 if(isTetrisSong){
                     playBackgroundSong(SPEAKER_TYPE_BIG, TetrisGameSong, TetrisGameSong_Beats, sizeof(TetrisGameSong)/2, 140,1);
                 }
                 lcdStruct.byteIndex = DISPLAY_WIDTH*8-9;
-                writeHorStringToBuffer(playerField, "     ");
-                lcdStruct.displayFullUpdate(playerField);
-                delay(500000);
+                LCD_writeHorStringToBuffer("     ");
+                lcdStruct.displayFullUpdate();
+                delayUs(500000);
             }
         #endif
             
@@ -761,14 +727,14 @@ void startTetrisGame(){
             musicSet.noteNumber = song.noteCount;
             
             lcdStruct.byteIndex = DISPLAY_WIDTH*7+72;
-            writeHorStringToBuffer(playerField, (gameState == GAME_WIN ? "You WIN" : "You Lose"));
-            lcdStruct.displayFullUpdate(playerField);
+            LCD_writeHorStringToBuffer((gameState == GAME_WIN ? "You WIN" : "You Lose"));
+            lcdStruct.displayFullUpdate();
             
-            delay(2000000);
+            delayUs(2000000);
             lcdStruct.clearOrFillDisplay(CLEAR);
             return;
         }
             
-        delay(curDelay);
+        delayUs(curDelay);
     }
 }

@@ -11,7 +11,6 @@ typedef enum {
 //static Direction newDirection;
 static uint16_t score = 0;
 
-static uint8_t playerField[LCD_BUFFER_LENGTH] = {0x00};
 static uint8_t NUMBERS_2048[] = {
     0x00, 0x7C, 0x44, 0x7C,   // 0
     0x00, 0x44, 0x7C, 0x40,   // 1
@@ -31,7 +30,7 @@ void gameInit(){
     //---default values
     int i, j;
     for(i = 0; i < LCD_BUFFER_LENGTH; i++){
-        playerField[i] = 0x00;
+        displayBuffer[i] = 0x00;
         if(i < 16){
             gameMatrix.matrix[i] = 0x00;
         }
@@ -43,15 +42,15 @@ void gameInit(){
     // write upper and bottom border
     for(i = 1; i < FIELD_WIDTH - 1; i++){
         for(j = 0; j < 3*DISPLAY_WIDTH; j += DISPLAY_WIDTH){
-            playerField[j + i] |= 0x01;
+            displayBuffer[j + i] |= 0x01;
         }
-        playerField[DISPLAY_WIDTH*3 + i] |= 0x81;
+        displayBuffer[DISPLAY_WIDTH*3 + i] |= 0x81;
     }
     
     // write lateral border
     for(i = 0; i < 4*DISPLAY_WIDTH; i += DISPLAY_WIDTH){
         for(j = 0; j < 5*CELL_WIDTH; j += CELL_WIDTH){
-            playerField[i+j]  |= 0xFF;
+            displayBuffer[i+j]  |= 0xFF;
         }
     }
     
@@ -62,19 +61,19 @@ void gameInit(){
     // draw matrix
     writeMatrixToField();
     writeScore();
-    LCD_DisplayFullUpdate(playerField);
+    LCD_DisplayFullUpdate();
 }
 
 //
 //----write functions----
 void writeScore(){
     lcdStruct.byteIndex = FIELD_WIDTH + 1;
-    LCD_WriteStringToBuffer(playerField, "Score:");
+    LCD_WriteStringToBuffer("Score:");
     
     char receiveString[5];
     sprintf(receiveString, "%05u", score);
     lcdStruct.byteIndex = FIELD_WIDTH+DISPLAY_WIDTH + 1;
-    LCD_WriteStringToBuffer(playerField, receiveString);
+    LCD_WriteStringToBuffer(receiveString);
 }
 
 void writeNumberToField(uint16_t number, uint8_t row, uint8_t col){
@@ -84,7 +83,7 @@ void writeNumberToField(uint16_t number, uint8_t row, uint8_t col){
     // clear cell
     int i, j;
     for(i = 0; i < 16; i++){
-        playerField[index + i] &= (row == 3 ? 0x81: 0x01);
+        displayBuffer[index + i] &= (row == 3 ? 0x81: 0x01);
     }
     // if element = 0
     if(number == 0) return;
@@ -110,7 +109,7 @@ void writeNumberToField(uint16_t number, uint8_t row, uint8_t col){
     // write digits of number
     for(i = 0; i < 4 - startDigit; i++){
         for(j = 0; j < 4; j++){
-            playerField[index + i*4 + j] |= NUMBERS_2048[digits[i+startDigit]*4+j];
+            displayBuffer[index + i*4 + j] |= NUMBERS_2048[digits[i+startDigit]*4+j];
         }
     }
 }
@@ -138,7 +137,7 @@ uint8_t getAvailableIndex(){
     // if field is full
     if(!availableCellsCount){ return 250; }
     
-    uint8_t ind = TIMER->CNT % 16;
+    uint8_t ind = GAME_TIMER->CNT % 16;
     
     while(availableCells[ind] == -1){
         ind++;
@@ -151,7 +150,7 @@ uint8_t getAvailableIndex(){
 void genNewNumber(){
     uint8_t index = getAvailableIndex();
     if(index != 250){
-        *(gameMatrix.matrix + index) = (TIMER->CNT < 900 ? 2 : 4);
+        *(gameMatrix.matrix + index) = (GAME_TIMER->CNT < 900 ? 2 : 4);
     }
 }
 
@@ -279,14 +278,14 @@ void moveAndDrawMatrix(uint8_t newDirection){
     
     writeMatrixToField();
     writeScore();    
-    LCD_DisplayFullUpdate(playerField);
-    delay(10000);
+    LCD_DisplayFullUpdate();
+    delayUs(10000);
     
     // generate new number if there were shifts
     if(shiftCounts != 0){
         genNewNumber();
         writeMatrixToField();
-        LCD_DisplayFullUpdate(playerField);
+        LCD_DisplayFullUpdate();
     }
 }
 
@@ -294,7 +293,7 @@ void startGame2048(){
     LCD_ClearOrFillDisplay(CLEAR);
     gameInit();
     
-    delay(1000);
+    delayUs(1000);
     uint8_t gameStatus = GAME_CONTINUE;
     while(1){
         if(isButtonPressed(BUTTON_TOP)){
@@ -320,11 +319,11 @@ void startGame2048(){
             gameStatus = checkGameEnd();
         } else{
             lcdStruct.byteIndex = DISPLAY_WIDTH*5 + 20;
-            LCD_WriteStringToBuffer(playerField, (gameStatus == GAME_WIN ? "You WIN!!!" : "You LOSE!!!" ));
-            LCD_DisplayFullUpdate(playerField);
-            delay(2000000);
+            LCD_WriteStringToBuffer((gameStatus == GAME_WIN ? "You WIN!!!" : "You LOSE!!!" ));
+            LCD_DisplayFullUpdate();
+            delayUs(2000000);
             break;
         }
-        delay(200000);
+        delayUs(200000);
     }
 }

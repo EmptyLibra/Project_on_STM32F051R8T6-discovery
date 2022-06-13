@@ -1,48 +1,49 @@
 #include "lcd_main_menu.h"
 
-void HardFault_Handler(void){
+/* Обработчик прерываний для кретических ошибок (для отладки) */
+void HardFault_Handler(void)
+{
     
 }
-
-void delay(long mcs){
-    unsigned int tick = 0;
-    while (mcs--)
-    {
-        while (tick < 6)
-        {
-            tick++;
-        }
-        tick = 0;
-    }
-}
-
+/*1. Написать свою функцию abs
+  2. Придумать, как самому генерировать случайные числа
+  4. Оптимизировать анализ ИК сигнала и динамика (ШИМ)
+  5. изменить работу ИК-передатчика (через таймера) */
+/* Главная функция проекта */
 int main(void)
 {
-    __enable_irq();
-    //----initializing pins-------------------------------------------------
-    buttonPinsInit();                      // init user buttons PA0
-    LCD_PortsInit();                       // init LCD display pins
-    timerInit();                           // init timer for games
-    speakerInit();                         // init PB12, PB11 as PWM
-    ledsPinInit();                         // init leds PC8 and PC9
-    IR_init();
-    uartPinsInit();
+	/*### Пины PA14 и PA13 отвечают за отладку (debug) и их лучше не трогать ###*/
+	
+	/*==================== Блок инициализации ====================*/
+	__enable_irq();       /* Разрешаем прерывания */
+	delayInit();          /* Инициализация системного таймера и значений задержек */
+    buttonPinsInit();     /* Инициализация внешних кнопок    (Пины: PA0-PA3, PF4, PF5 ) */
+	ledPinsInit();        /* Инициализация светодиодов       (Пины: PC8, PC9) */
+    LCD_PortsInit();      /* Инициализация пинов LCD дисплея (SPI2: PB12-PB15) */
+	irReseivTransInit();  /* ИК-применик и ИК-светодиод      (Пины: PA8-IR-Transmitter, PA11-IR-diode, TIM1, TIM15) */
+	uartPinsInit();       /* Инициализация USART1            (USART1: PA9-TX, PA10-RX)*/
+	//speakerInit();        /* Инициализация динамиков         (Пины: PB12, PB11 в режиме ШИМ (PWM)) */
     
-    NVIC_SetPriority(SysTick_IRQn, 1);
-    NVIC_SetPriority(TIM2_IRQn, 0);
-    //----init LCD-----------------------------------------------
-    LCD_Init();                  // init Display
+	gameTimerInit();      /* Инициализация игрового таймера (TIM3) для генерации случайных чисел */
+	
+    /*==================== Блок второстепенной инициализации ====================*/
+	LCD_Init();           /* Включение и инициализация дисплея */
     
-    //---main loop-----------------------------------------------
-    TIM_Cmd(TIM3, ENABLE);
-    LCD_StartMainMenu();
-//    
-//    while(1){
-//        if(GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_10) == Bit_RESET){
-//            LD3(SET);
-//        } else{
-//            LD3(RESET);
+	/*==================== Блок главного цикла ====================*/
+    TIM_Cmd(GAME_TIMER, ENABLE);
+
+	LCD_StartMainMenu();
+	
+	/* TEST START */
+//    while(1)
+//	{
+//        if(GPIO_ReadInputDataBit(GPIOB, GPIO_Pin_10) == Bit_RESET)
+//		{
+//            LED_GREEN(SET);
+//        } else
+//		{
+//            LED_GREEN(RESET);
 //        }
 //    }
-    
+    /* TEST END */
 }
