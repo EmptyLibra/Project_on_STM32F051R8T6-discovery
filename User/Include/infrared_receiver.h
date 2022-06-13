@@ -1,5 +1,5 @@
-#ifndef IR_HEADER
-#define IR_HEADER
+#ifndef __IR_H
+#define __IR_H
 
 /* Detected infrared signal from different pults on NEC protocol (using Extented NEC protocol).
 *  Executes commands to control LED and buttons.
@@ -20,7 +20,7 @@
 * <-------2.25ms--------><--1.125ms--->
 
 Protocol:
-*  ___________         1  0 0 1         1
+*  ___________        1  0 0 1         1
 * |           |       |  | | |         |                                          |
 * |           |       |  | | |         |                                          |
 * |           |_______|__|_|_|__.......|__........................................|
@@ -37,48 +37,43 @@ Protocol:
        V0 GND  5V
 */
 
-#include "pins_and_settings.h"
-#include "speaker.h"
-#include "stm32f0xx_tim.h"
-#include "stdlib.h" // for abs()
+/*============================== Подключение библиотек ==============================*/
+#include "main_conf.h"  /* Библиотека с основными настройками для всего проекта */
+#include "speaker.h"    /* Библиотека для работы с динамиками */
 
-/*==============================Defines==========================================*/
-// ir-receiver pins (PB10)
-#define RCC_AHBENR_IREN          RCC_AHBENR_GPIOBEN
-#define IR_PORT                  GPIOB
-#define IR_RECEIV_PIN            GPIO_Pin_10
-#define IR_RECEIV_PIN_SOURCE     GPIO_PinSource10
+/*============================== Макросы ==============================*/
+/* Пины ИК-приемника и ИК-передатчика */
+#define RCC_AHBENR_IREN          RCC_AHBENR_GPIOAEN // Тактирование
+#define IR_PORT                  GPIOA              // ИК-порт
+#define IR_TRANS_PIN             GPIO_Pin_11        // PA11 - ИК-передатчик
+#define IR_RECEIV_PIN            GPIO_Pin_8         // PA8 - ИК-приемник
+#define IR_RECEIV_PIN_SOURCE     GPIO_PinSource8    // Источник для альтернативной функции
 
-// ir-transmitter pin
-#define IR_TRANS_PIN             GPIO_Pin_14
-#define IR_TRANS_PIN_SOURCE      GPIO_PinSource14
+/* Коды команд китайского пульта (управляющего подсветкой) */
+#define IR_BUTTON_TOP      0x00FFA857 // Кнопка - Зеленая стрелка вверх
+#define IR_BUTTON_BOTOOM   0x00FFB04F // Кнопка - DIY2
+#define IR_BUTTON_RIGHT    0x00FF48B7 // Кнопка - Синяя стрелка вверх
+#define IR_BUTTON_LEFT     0x00FF08F7 // Кнопка - Красная стрелка вниз
+#define IR_BUTTON_SELECT   0x00FF10EF // Кнопка - DIY4
+#define IR_BUTTON_BACK     0x00FF50AF // Кнопка - DIY6
+#define IR_BLUE_LED        0x00FFA25D // Кнопка - Синяя кнопка B
+#define IR_GREEN_LED       0x00FF9A65 // Кнопка - зеленая кнопка G
 
+#define IR_SONG_PAUSE_PLAY 0x00FFC837 // Кнопка - QUICK
+#define IR_SONG_SW_MT      0x00FF20DF // Кнопка - JUMP3
+#define IR_SONG_PIRATES    0x00FFA05F // Кнопка - JUMP7
+#define IR_SONG_ELISE      0x00FF609F // Кнопка - FADE3
+#define IR_SONG_TETRIS     0x00FFE01F // Кнопка - FADE7
 
-// buttons on chinese pult
-#define IR_BUTTON_TOP     0x00FFA857 // Button - Green arrow up
-#define IR_BUTTON_BOTOOM  0x00FFB04F // Button - DIY2
-#define IR_BUTTON_RIGHT   0x00FF48B7 // Button - Blue arrow down
-#define IR_BUTTON_LEFT    0x00FF08F7 // Button - Red arrow down
-#define IR_BUTTON_SELECT  0x00FF10EF // Button - DIY4
-#define IR_BUTTON_BACK    0x00FF50AF // Button - DIY6
-#define IR_BLUE_LED       0x00FF9A65 // Blue button
-#define IR_GREEN_LED      0x00FFA25D // Green button
-
-#define IR_SONG_PAUSE_PLAY 0x00FFC837 // Button - QUICK
-#define IR_SONG_SW_MT     0x00FF20DF // Button - JUMP3
-#define IR_SONG_PIRATES   0x00FFA05F // Button - JUMP7
-#define IR_SONG_ELISE     0x00FF609F // Button FADE3
-#define IR_SONG_TETRIS    0x00FFE01F // Button FADE7
-
-// buttons on Panasonic pult
+/* Коды кнопок с пульта от Panasonic */
 #define IR_PANASONIC_BUTTON_TOP         0x400401005253
 #define IR_PANASONIC_BUTTON_BOTOOM      0x40040100D2D3 
 #define IR_PANASONIC_BUTTON_RIGHT       0x40040100F2F3 
 #define IR_PANASONIC_BUTTON_LEFT        0x400401007273 
 #define IR_PANASONIC_BUTTON_SELECT      0x400401009293 
 #define IR_PANASONIC_BUTTON_BACK        0x400401002B2A 
-#define IR_PANASONIC_GREEN_LED          0x40040100CECF 
-#define IR_PANASONIC_BLUE_LED           0x400401008E8F 
+#define IR_PANASONIC_GREEN_LED          0x400401008E8F
+#define IR_PANASONIC_BLUE_LED           0x40040100CECF 
 
 #define IR_PANASONIC_SONG_PLAY          0x400409005059
 #define IR_PANASONIC_SONG_PAUSE         0x400409000009
@@ -87,32 +82,22 @@ Protocol:
 #define IR_PANASONIC_SONG_ELISE         0x40040190E574 
 #define IR_PANASONIC_SONG_TETRIS        0x400401909100
 
-//=================NEC=========================
-#define IR_PROTOCOL_TYPE_NEC 1
-#define NEC_BITS          32
-#define NEC_HDR_MARK    9000
-#define NEC_HDR_SPACE   4500
-#define NEC_BIT_MARK     560
-#define NEC_ONE_SPACE   1690
-#define NEC_ZERO_SPACE   560
-#define NEC_RPT_SPACE   2250
+/*----- Протокол NEC -----*/
+/* Реальные длительности протокола (по осцилографу):
+ * Длительность 1 преабулы:                 880-950 (9000 us) 
+ * Длительность 0 преамбулы:                430-470 (4500 us)
+ * Длительность mark 1, mark 0, zero space: 40-70   (560 us)
+ * Длительность нуля (space):               150-180 (1690 us) */
+#define IR_PROTOCOL_TYPE_NEC 1     // Код протокола NEC
+#define NEC_BITS             32    // Кол-во битов протокола
+#define NEC_HDR_MARK         9000  // Длительность 1 преамбулы (мкс)
+#define NEC_HDR_SPACE        4500  // Длительность 0 преамбулы (мкс)
+#define NEC_BIT_MARK         560   // Длительность импульса 1 (мкс)
+#define NEC_ONE_SPACE        1690  // Длительность паусы 1 (мкс)
+#define NEC_ZERO_SPACE       560   // Длительность паузы нуля (мкс)
+#define NEC_RPT_SPACE        2250  // Длительность паузы при повторной команде (мкс)
 
-/* NEC real len:
-* Preambula mark:                   880-950 (9000 us)
-* Preambula space:                  430-470 (4500 us)
-* One mark, zero mark, zero spase:  40-70   (560 us)
-* One space:                        150-180 (1690 us)
-*/
-
-//=================PANASONIC=========================
-#define IR_PROTOCOL_TYPE_PANASONIC 2
-#define PANASONIC_BITS          48
-#define PANASONIC_HDR_MARK    3600
-#define PANASONIC_HDR_SPACE   1500
-#define PANASONIC_BIT_MARK     400
-#define PANASONIC_ONE_SPACE   1200
-#define PANASONIC_ZERO_SPACE   400
-
+/*----- Протокол Panasonic -----*/
 /*Protocol PANASONIC (REC80, JAP) (in my case):
 * 16 bit address, 32 bit commands
 */
@@ -123,18 +108,13 @@ Protocol:
 * One mark, zero mark, zero spase:  30-60   (400 us)
 * One space:                        110-150 (1200 us)
 */
-
-//=================DAHATSU=========================
-#define IR_PROTOCOL_TYPE_DAHATSU  3
-#define DAHATSU_BITS              112
-#define DAHATSU_HDR_MARK    3000
-#define DAHATSU_HDR_SPACE   1750
-#define DAHATSU_BIT_MARK     500
-#define DAHATSU_ONE_SPACE   1000
-#define DAHATSU_ZERO_SPACE   500
-
-#define DAHATSU_COMMAND_POWER_ON1 0xC4D364800024C0D0
-#define DAHATSU_COMMAND_POWER_ON2 0x000000007735
+#define IR_PROTOCOL_TYPE_PANASONIC 2
+#define PANASONIC_BITS          48
+#define PANASONIC_HDR_MARK    3600
+#define PANASONIC_HDR_SPACE   1500
+#define PANASONIC_BIT_MARK     400
+#define PANASONIC_ONE_SPACE   1200
+#define PANASONIC_ZERO_SPACE   400
 
 #define IR_PROTOCOL_TYPE_UNKNOWN  4
 
@@ -142,10 +122,10 @@ Protocol:
 #define IR_RECEIVE_TYPE_NORMAL 0
 #define IR_RECEIVE_TYPE_TEST   1
 
-/*===========================Structs and Variables==================================*/
-extern uint16_t IR_curButton;
+/*============================== Структуры и переменные ==============================*/
+/* К ИК-кнопке нужен внешний доступ, чтобы её можно было проверять */
 extern uint8_t isIrReceiveEn;
-    
+   
 typedef struct{
     uint8_t dataReceiveCount;
     uint64_t receiveIRData1;
@@ -159,13 +139,10 @@ typedef struct{
 } IR_ReceiveProt;
 extern IR_ReceiveProt irReceiveProt;
 
-/*===========================Functions==================================*/
-void IR_init(void);
-
-//NEC
+/*============================== Функции ==============================*/
+void irReseivTransInit(void);
 void mark(unsigned int time);
 void space(unsigned int time);
-extern void sendNEC(uint32_t data);
-extern void sendPanasonic(uint64_t data);
-extern void sendDahatsu(uint64_t data1, uint64_t data2);
+void sendNEC(uint32_t data);
+void sendPanasonic(uint64_t data);
 #endif

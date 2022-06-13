@@ -25,7 +25,6 @@ void writeFigToField(void);
 uint8_t isLost(void);
 void shiftAllDown(uint16_t lineNumber);
 void checkAndShiftLines(void);
-void writeHorStringToBuffer(uint8_t *pBuff, const char* str);
 void updateScoreAndFigure(void);
 
 //---move functions----------------
