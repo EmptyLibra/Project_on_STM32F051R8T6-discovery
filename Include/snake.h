@@ -4,7 +4,6 @@
 #include "lcd_lib.h"
 #include <string.h> // for memset()
 #include <stdio.h>  // for sprintf()
-#include "stdlib.h" // for abs()
 #include "speaker.h"
 
 #define START_SNAKE_LENGTH 8

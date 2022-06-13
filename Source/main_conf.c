@@ -27,6 +27,11 @@ void SysTick_Handler(void)
 	if(delayUsDec) delayUsDec--;
 }
 
+/* Функция нахождения абсолютного значения (вместо функции из библиотеки stdlib.h */
+int abs(int num)
+{
+	return (num < 0 ? -num : num);
+}
 /* Функция задержки на указанное количесвто микросекунд с помощью системного таймера 
  * Для большей точности используется системный таймер, а не просто пустой цикл*/
 void delayUs(uint32_t mcs)
@@ -97,8 +102,8 @@ void buttonPinsInit(void)
     GPIOx_ini.GPIO_Pin = BUTTON_BACK | BUTTON_RIGHT | BUTTON_TOP | BUTTON_LEFT;
     GPIOx_ini.GPIO_Mode = GPIO_Mode_IN;                    /* Настраиваем ногу как вход */
     GPIOx_ini.GPIO_Speed = GPIO_Speed_10MHz;               /* Частота тактирования средняя -  10 МГц */
-    GPIOx_ini.GPIO_OType = GPIO_OType_PP;                  /* Двухтактный (push-pull) выход */
-    GPIOx_ini.GPIO_PuPd = GPIO_PuPd_NOPULL;                /* Без подтягивания */
+    GPIOx_ini.GPIO_OType = GPIO_OType_PP;                  /* Режим работы выхода порта: тяни-талкай (push-pull) */
+    GPIOx_ini.GPIO_PuPd = GPIO_PuPd_NOPULL;                /* Подтяжка к питанию или к земле: подтяжка выключена */
     
 	GPIO_Init(BUTTONS_BRTL_PORT, &GPIOx_ini);              /* Записываем данные в порт */
     
@@ -130,7 +135,7 @@ void gameTimerInit(void)
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);  /* Включаем тактирование */
     TIM_TimeBaseInitTypeDef TIM3_ini;
     
-    TIM3_ini.TIM_Prescaler = SystemCoreClock/1000 - 1; /* Предделитель (считаем в мс) */
+    TIM3_ini.TIM_Prescaler = SystemCoreClock/1000 - 1; /* Предделитель (за 1 сек тикает 1000 раз - считает в мс) */
     TIM3_ini.TIM_CounterMode = TIM_CounterMode_Up;     /* Счёт вверх */
     TIM3_ini.TIM_Period = 1000;                        /* Счёт до 1 секунды */
     TIM3_ini.TIM_ClockDivision = TIM_CKD_DIV1;         /* Без делителя частоты */

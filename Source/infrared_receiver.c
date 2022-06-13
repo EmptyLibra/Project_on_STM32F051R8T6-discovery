@@ -15,7 +15,7 @@
 */
 
 /*===========================Variables==================================*/
-static uint16_t currData[140] = {0};                       // Contains pulse durations (start puls, 0 or 1)
+static uint16_t currData[250] = {0};                       // Contains pulse durations (start puls, 0 or 1)
 static uint16_t currDataIndex = 0;
 static uint16_t prevDataElem = 0, curDataElem = 0;
 
@@ -28,39 +28,38 @@ uint16_t IR_curButton = 0;
 uint8_t isIrReceiveEn = 1;
 //
 /*===========================Functions==================================*/
-void TIM15_IRQHandler(void){
+void TIM15_IRQHandler(void)
+{
     if(TIM_GetITStatus(TIM15, TIM_IT_Update) == SET){
         TIM_ClearITPendingBit(TIM15, TIM_IT_Update);
         
         // if there is no ir signal for 300 ms, reset data
-        if(lastTIM15CNT == 0){
-            IRDataCounter = 0;
-            currDataIndex = 0;
-            IRData1 = 0;
-            IRData2 = 0;
-            TIM_Cmd(TIM15, DISABLE);
-        }
-        lastTIM15CNT = 0;
+		IRDataCounter = 0;
+		currDataIndex = 0;
+		IRData1 = 0;
+		IRData2 = 0;
+		TIM_Cmd(TIM15, DISABLE);
     }
 }
 
-void TIM3_IRQHandler(void){
+void TIM1_CC_IRQHandler(void)
+{
     // pult testing
-//    if(TIM_GetITStatus(TIM3, TIM_IT_CC1) == SET){
-//        TIM_ClearITPendingBit(TIM3, TIM_IT_CC1);
-//        curDataElem = TIM_GetCapture1(TIM3);
-//        if(currDataIndex){
-//            currData[currDataIndex-1] = abs(curDataElem - prevDataElem);
-//        }
-//        prevDataElem = curDataElem;
-//        currDataIndex++;
-//        if(curDataElem > 1000 && currDataIndex > 2){
-//            currDataIndex+= 0;
-//        }
+//    if(TIM_GetITStatus(TIM1, TIM_IT_CC1) == SET){
+//        TIM_ClearITPendingBit(TIM1, TIM_IT_CC1);
+//		if(currDataIndex < 200) {
+//			curDataElem = TIM_GetCapture1(TIM1);
+//			currData[currDataIndex] = abs(curDataElem - prevDataElem);
+//			prevDataElem = curDataElem;
+//			currDataIndex++;
+//        } else {
+//			currDataIndex += 0;
+//		}
 //    }
     // real work
-    if(TIM_GetITStatus(TIM3, TIM_IT_CC1) == SET){
-        TIM_ClearITPendingBit(TIM3, TIM_IT_CC1);
+    if(TIM_GetITStatus(TIM1, TIM_IT_CC1) == SET){
+		TIM_Cmd(TIM15, DISABLE);
+        TIM_ClearITPendingBit(TIM1, TIM_IT_CC1);
         if(isIrReceiveEn){
             if(currDataIndex > 130){
                 IRDataCounter = 0;
@@ -69,7 +68,7 @@ void TIM3_IRQHandler(void){
                 IRData2 = 0;
             }
             
-            curDataElem = TIM_GetCapture1(TIM3);
+            curDataElem = TIM_GetCapture1(TIM1);
             if(currDataIndex){
                 currData[currDataIndex-1] = curDataElem - prevDataElem;
                 prevDataElem = curDataElem;
@@ -266,84 +265,88 @@ void TIM3_IRQHandler(void){
                 currDataIndex++;
             }
             
-            lastTIM15CNT = TIM15->CNT;
+			TIM15->CNT = 0;
             TIM_Cmd(TIM15, ENABLE);
         }
     }
 }
 
-void irReseivTransInit(){
-    /*---IR receiver init PC6 - AF2 - TIM2_CH3*/
-    RCC_AHBPeriphClockCmd(RCC_AHBENR_IREN, ENABLE);
-    GPIO_InitTypeDef GPIOx_ini;
+/* Инициализация пинов ИК-приемника (PA8/TIM1_CH1) и ИК-передатчика (PA11), а также TIM1 и TIM15*/
+void irReseivTransInit(void)
+{
+	// ========== Инициализация ИК-приемника PA8 - AF2 - TIM1_CH1 ==========
+    RCC_AHBPeriphClockCmd(RCC_AHBENR_IREN, ENABLE);  // Тактирование ИК-порта (GPIOA)
+    GPIO_InitTypeDef GPIOx_ini;                      // Структура хранения настроек порта
     
-    GPIOx_ini.GPIO_Pin = IR_RECEIV_PIN;
-    GPIOx_ini.GPIO_Mode = GPIO_Mode_AF;        // PC6 - AF - TIM3_CH1
-    GPIOx_ini.GPIO_Speed = GPIO_Speed_2MHz;   // 2, 10, 50 ̃ö
-    GPIOx_ini.GPIO_OType = GPIO_OType_PP;
-    GPIOx_ini.GPIO_PuPd = GPIO_PuPd_DOWN;
-    GPIO_Init(IR_PORT, &GPIOx_ini);
+	// Настраиваем порт
+    GPIOx_ini.GPIO_Pin = IR_RECEIV_PIN;       // Настраев пин ИК-приемника PA8
+    GPIOx_ini.GPIO_Mode = GPIO_Mode_AF;       // Режим работы порта: альтернативная функция
+    GPIOx_ini.GPIO_Speed = GPIO_Speed_10MHz;  // Скорость (частота) работы порта: 10 МГц
+    GPIOx_ini.GPIO_OType = GPIO_OType_PP;     // Режим работы выхода порта: двухтактный (push-pull)
+    GPIOx_ini.GPIO_PuPd = GPIO_PuPd_DOWN;     // Подтяжка к питанию или к земле: подтяжка к земле
+    GPIO_Init(IR_PORT, &GPIOx_ini);           // Инициализация порта
     
+	// Включаем в качестве альтернативной функции TIM1_CH1
+	GPIO_PinAFConfig(GPIOA, IR_RECEIV_PIN_SOURCE, GPIO_AF_2);
+	
+    // Включаем тактирование таймера TIM1
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1, ENABLE);
     
+	// Настройка таймера на счет в 100 мкс
+	TIM_TimeBaseInitTypeDef TIMx_ini;
+    TIMx_ini.TIM_Prescaler = SystemCoreClock/100000 - 1;  // Пределитель таймера (480-1): считает 100 мкс
+    TIMx_ini.TIM_CounterMode = TIM_CounterMode_Up;        // Направление счета: вверх
+    TIMx_ini.TIM_Period = 0xFFFF;                         // Период счета: максимальный - 0xFFFF
+    TIMx_ini.TIM_ClockDivision = TIM_CKD_DIV1;            // Делаитель частоты: 1
+    TIM_TimeBaseInit(TIM1, &TIMx_ini);                    // Инициализация таймера
     
-    // timer2 settings
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
-    TIM_TimeBaseInitTypeDef TIM3_ini;
-    
-    TIM3_ini.TIM_Prescaler =  480 - 1;
-    TIM3_ini.TIM_CounterMode = TIM_CounterMode_Up;
-    TIM3_ini.TIM_Period = 0xFFFF;
-    TIM3_ini.TIM_ClockDivision = TIM_CKD_DIV1;
-    TIM_TimeBaseInit(TIM3, &TIM3_ini);
-    
-    // timer's chanell settings
-    TIM_ICInitTypeDef TIM3_ICinit;
-    TIM3_ICinit.TIM_Channel = TIM_Channel_1;
-    TIM3_ICinit.TIM_ICFilter = 4;
-    TIM3_ICinit.TIM_ICPolarity = TIM_ICPolarity_Falling;
-    TIM3_ICinit.TIM_ICPrescaler = TIM_ICPSC_DIV1;
-    TIM3_ICinit.TIM_ICSelection = TIM_ICSelection_DirectTI;
-    TIM_ICInit(TIM3, &TIM3_ICinit);
+    // Инициализация канала таймера
+    TIM_ICInitTypeDef TIMx_ICinit;
+    TIMx_ICinit.TIM_Channel = TIM_Channel_1;                 // Выбранный канал: первый
+    TIMx_ICinit.TIM_ICFilter = 4;                            // Входной фильтр: подтверждение наличие сигнала после 4-х циклов
+    TIMx_ICinit.TIM_ICPolarity = TIM_ICPolarity_Falling;     // Активный уровень захвата: между двумя спадами
+    TIMx_ICinit.TIM_ICPrescaler = TIM_ICPSC_DIV1;            // Дополнительный предделитель: 1 (захватывать каждый сигнал)
+    TIMx_ICinit.TIM_ICSelection = TIM_ICSelection_DirectTI;  // Направление канала: прямое
+    TIM_ICInit(TIM1, &TIMx_ICinit);
 
-    // enable interrupts
-    TIM_ITConfig(TIM3, TIM_IT_CC1, ENABLE);
-    TIM_ClearFlag(TIM3, TIM_FLAG_CC1);
-    TIM_Cmd(TIM3, ENABLE);             // enable timer 2
+	// Включение прерываний
+    TIM_ITConfig(TIM1, TIM_IT_CC1, ENABLE);  // Включаем прерывания по захвату с первого канала
+    NVIC_EnableIRQ(TIM1_CC_IRQn);            // Включаем прерывания первого таймера по захвату
+    TIM_Cmd(TIM1, ENABLE);                   // Включаем таймер 1
     
-    NVIC_EnableIRQ(TIM3_IRQn);
-    
-    
-    /*-----------------Transmitter IR-diode init (PC7)--------------*/
-    RCC_AHBPeriphClockCmd(RCC_AHBENR_IREN, ENABLE);
-    GPIOx_ini.GPIO_Pin = IR_TRANS_PIN;
-    GPIOx_ini.GPIO_Mode = GPIO_Mode_OUT;
-    GPIOx_ini.GPIO_Speed = GPIO_Speed_50MHz;   // 2, 10, 50
-    GPIOx_ini.GPIO_OType = GPIO_OType_PP;
-    GPIOx_ini.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    GPIO_Init(IR_PORT, &GPIOx_ini);
-    
-    // Timer for correct receiver
-    // if there is no signal for 300 ms, reset data
+	// ========== Инициализация таймера для time out приема (TIM15) ==========
+    // Если сигнала нет больше 50 мс, то закончить прием данных
+	
+	// Включаем тактирование таймера TIM15
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM15, ENABLE);
-    TIM_TimeBaseInitTypeDef TIM15_ini;
     
-    TIM15_ini.TIM_Prescaler =  48000 - 1;
-    TIM15_ini.TIM_CounterMode = TIM_CounterMode_Up;
-    TIM15_ini.TIM_Period = 500;
-    TIM15_ini.TIM_ClockDivision = TIM_CKD_DIV1;
-    TIM_TimeBaseInit(TIM15, &TIM15_ini);
+	// Настройка TIM15
+    TIMx_ini.TIM_Prescaler = SystemCoreClock/1000 - 1;  // Пределитель таймера (48000-1): считает 1 мс
+    TIMx_ini.TIM_CounterMode = TIM_CounterMode_Up;      // Направление счета: вверх
+    TIMx_ini.TIM_Period = 50;                           // Период счета: считаем до 50 мс
+    TIMx_ini.TIM_ClockDivision = TIM_CKD_DIV1;          // Делаитель частоты: 1
+    TIM_TimeBaseInit(TIM15, &TIMx_ini);                 // Инициализация таймера
     
-    TIM_ITConfig(TIM15, TIM_IT_Update, ENABLE);
-    NVIC_EnableIRQ(TIM15_IRQn);
-    
-    TIM_Cmd(TIM15, DISABLE);
+	// Включение прерываний
+    TIM_ITConfig(TIM15, TIM_IT_Update, ENABLE);  // Прерывание на достижение периода
+    NVIC_EnableIRQ(TIM15_IRQn);                  // Включаем прерывания TIM15
+    TIM_Cmd(TIM15, DISABLE);                     // Включаем TIM15 
+	
+    // ========== Инициализация ИК-передатчика PA11 ==========
+	// Включаем тактирование порта
+    RCC_AHBPeriphClockCmd(RCC_AHBENR_IREN, ENABLE);
+	
+	// Настраиваем порт
+    GPIOx_ini.GPIO_Pin = IR_TRANS_PIN;        // Настраев пин ИК-передатчика PA11
+    GPIOx_ini.GPIO_Mode = GPIO_Mode_OUT;      // Режим работы порта: выход
+    GPIOx_ini.GPIO_Speed = GPIO_Speed_10MHz;  // Скорость (частота) работы порта: 10 МГц
+    GPIOx_ini.GPIO_OType = GPIO_OType_PP;     // Режим работы выхода порта: двухтактный (push-pull)
+    GPIOx_ini.GPIO_PuPd = GPIO_PuPd_NOPULL;   // Подтяжка к питанию или к земле: без подтяжки
+    GPIO_Init(IR_PORT, &GPIOx_ini);           // Инициализация порта
 }
 //
 //==========NEC========================
 void mark(unsigned int time){
-	//TIM_Cmd(TIM15, ENABLE);
-    //if (time > 0) delayUs(time);
-    
     unsigned int i;
     for(i = time/26; i > 0; i--){
         IR_PORT->BSRR = IR_TRANS_PIN;
@@ -354,7 +357,6 @@ void mark(unsigned int time){
 }
 
 void space(unsigned int time){
-	//TIM_Cmd(TIM15, DISABLE);
     IR_PORT->BRR = IR_TRANS_PIN;
 	if(time > 0) delayUs(time);
 }

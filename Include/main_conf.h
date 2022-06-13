@@ -58,6 +58,7 @@ extern RCC_ClocksTypeDef clockStruct;  /* Структура с информац
 extern uint32_t buttonDelayUs;         /* Величина задержки для кнопок в мкс */
 
 /*============================== Функции ==============================*/
+int abs(int num);
 void delayUs(uint32_t mcs);
 uint8_t isButtonPressed(uint16_t pin);
 
