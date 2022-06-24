@@ -4,9 +4,9 @@
 static int curFigX = 0, curFigY = 8; // coord of up right corner of figure
 static uint16_t curFigType = 0, nextFigType = 0, score = 0, winScore = 60000,lines = 0;
 static uint8_t curFig[8] = {0x00};
-static uint8_t gameState = GAME_CONTINUE, fisrtStart = 1, isTetrisSong = 0;
+static uint8_t gameState = GAME_CONTINUE, fisrtStart = 1;
 static long curDelay = 100000;
-
+uint8_t isTetrisSong = 0;
 //------list of figures----------
 /* Cube - Smashboy
  *  {0,0, 0,0, 0,0, 0,0} <- young pixel
@@ -575,6 +575,9 @@ void songSelectTetris(){
     drawSongMenuTetris();
     
     while(1){
+		// Анализ ИК-протокола и выполнение команды
+		irProtocolAnalyze();
+		
         if(isButtonPressed(BUTTON_LEFT)){
             delayUs(10000);
             isTetrisSong -= (isTetrisSong == 0 ? 0 : 1);
@@ -597,8 +600,6 @@ void songSelectTetris(){
 //
 //---Main function----------------
 void startTetrisGame(){
-    lcdStruct.clearOrFillDisplay(CLEAR);
-    
     songSelectTetris();
     gameInit();
     
@@ -608,6 +609,9 @@ void startTetrisGame(){
     
     uint8_t isShiftDown = 0, isShiftOrRotate = 0;
     while(1){
+		// Анализ ИК-протокола и выполнение команды
+		irProtocolAnalyze();
+		
         // update delayUs
         curDelay = 100000 - score*10;
         
@@ -690,9 +694,8 @@ void startTetrisGame(){
         // exit the game
         #ifdef BUTTON_BACK
             if(isButtonPressed(BUTTON_BACK)){
-                musicSet.isCyclickSong = 0;
-                musicSet.noteNumber = song.noteCount;
-                
+                songStop();
+				
                 lcdStruct.clearOrFillDisplay(CLEAR);
                 break;
             }
@@ -704,13 +707,12 @@ void startTetrisGame(){
                 lcdStruct.byteIndex = DISPLAY_WIDTH*8-9;
                 LCD_writeHorStringToBuffer("Pause");
                 lcdStruct.displayFullUpdate();
-                musicSet.isCyclickSong = 0;
-                musicSet.noteNumber = song.noteCount;
+                songPause();
                 delayUs(1000000);
                 
-                while(!isButtonPressed(BUTTON_SELECT)){}
+                while(!isButtonPressed(BUTTON_SELECT)){irProtocolAnalyze();}
                 if(isTetrisSong){
-                    playBackgroundSong(SPEAKER_TYPE_BIG, TetrisGameSong, TetrisGameSong_Beats, sizeof(TetrisGameSong)/2, 140,1);
+                    song.isSongPlay = 1;
                 }
                 lcdStruct.byteIndex = DISPLAY_WIDTH*8-9;
                 LCD_writeHorStringToBuffer("     ");
@@ -723,8 +725,7 @@ void startTetrisGame(){
         if(score >= winScore){ gameState = GAME_WIN;}
         
         if(gameState != GAME_CONTINUE){
-            musicSet.isCyclickSong = 0;
-            musicSet.noteNumber = song.noteCount;
+            songStop();
             
             lcdStruct.byteIndex = DISPLAY_WIDTH*7+72;
             LCD_writeHorStringToBuffer((gameState == GAME_WIN ? "You WIN" : "You Lose"));
@@ -734,7 +735,5 @@ void startTetrisGame(){
             lcdStruct.clearOrFillDisplay(CLEAR);
             return;
         }
-            
-        delayUs(curDelay);
     }
 }

@@ -9,13 +9,13 @@
 #include "lcd_main_menu.h"
 
 /*============================== Переменные ==============================*/
-/* Список меню */
-static char MENU_ITEMS[][11] = {
+/* Список меню (в строке 9 символ, но русский символ считается за 2 + '\0') */
+static const char MENU_ITEMS[][19] = {
     "2048     ",
-    "Snake    ",
-    "Tetris   ",
-    "Speaker  ",
-    "IR Test  "
+    "Змейка   ",
+    "Тетрис   ",
+    "Динамики ",
+    "ИК-тест  "
 };
 
 /* Индекс текущего элемента меню */
@@ -49,145 +49,191 @@ static void LCD_FillMenuBuffer(void)
 /* Рисуем меню ИК-анализа-захвата */
 static void drawIrMode(void)
 {
-    lcdStruct.byteIndex = DISPLAY_WIDTH*7;
-    
-    switch(irMode){
+	// Устанавливаем курсор на последнюю страницу
+    LCD_SetBufferCursor(0, PAGE_8);
+	
+	// В зависимости от текущего режима рисуем меню
+    switch(irMode) {
         case IR_MODE_TEST:
-            lcdStruct.writeStringToBuffer(">test  capture  send");
+            lcdStruct.writeStringToBuffer(">тест  захват  отпр.");
             break;
         case IR_MODE_CAPTURE:
-            lcdStruct.writeStringToBuffer(" test >capture  send");
+            lcdStruct.writeStringToBuffer(" тест >захват  отпр.");
             break;
         case IR_MODE_SEND:
-            lcdStruct.writeStringToBuffer(" test  capture >send");
+            lcdStruct.writeStringToBuffer(" тест  захват >отпр.");
     }
+	
+	// Полностью отрисовываем дисплей
     lcdStruct.displayFullUpdate();
 }
 
-/* Анализируем ИК-сигнал и отображаем результат ?????????????????????*/
-static void irProtocolAnalyze(void)
+/* Анализируем ИК-сигнал и отображаем результат */
+static void irProtocolTest(void)
 {
-    irReceiveProt.receiveType = IR_RECEIVE_TYPE_TEST;
-    lcdStruct.clearOrFillDisplay(CLEAR);
+	// Включаем тестовые режим приема ИК-команд (без их выполнения)
+    irReceiveType = IR_RECEIVE_TYPE_TEST_COMMAND;
+	
+	// Очищаем буфер меню
     memset(displayBuffer, 0, LCD_BUFFER_LENGTH);
     
-    lcdStruct.byteIndex = 0;
-    lcdStruct.writeStringToBuffer("IR test");
+	// Рисуем само меню
+    LCD_SetBufferCursor(0,0);
+    lcdStruct.writeStringToBuffer("ИК тест");
     LCD_DrawPageFromBuffer(PAGE_1);
     drawIrMode();
     
-    char receiveStr[128];
-    while(1){
-        if(isButtonPressed(BUTTON_LEFT)){
+    while(1) 
+	{
+		// Анализ ИК-протокола и выполнение команды
+		irProtocolAnalyze();
+		
+		// Движение по меню ИК-теста влево
+        if(isButtonPressed(BUTTON_LEFT)) {
+			// Задержка для адекватной работы кнопок
             delayUs(buttonDelayUs);
+			
+			// Переключение режима меню и включение приема ИК-сообщений
             irMode -= (irMode == IR_MODE_TEST ? 0 : 1);
-            isIrReceiveEn = 1;
-            
+            irReceiveState = ENABLE;
+            irProtocol.isFullReceive = 0;
+			irProtocol.bitsCount = 0;
+			irProtocol.irCmdBitCounter = 0;
+			irProtocol.irCommand = 0;
+			irProtocol.preambuleTime = 0;
+			irProtocol.type = 0;
+			irProtocol.repeatLastCmd = 0;
+			
+			// Рисуем ИК-меню
             drawIrMode();
         }
-        if(isButtonPressed(BUTTON_RIGHT)){
+		
+		// Движение по меню ИК-теста вправо
+        if(isButtonPressed(BUTTON_RIGHT)) {
+			// Задержка для адекватной работы кнопок
             delayUs(buttonDelayUs);
+			
+			// Переключение режима меню
             irMode += (irMode == IR_MODE_SEND ? 0 : 1);
-
+			
+			// Рисуем ИК-меню
             drawIrMode();
         }
-        if(isButtonPressed(BUTTON_SELECT)){
+		
+		// Отправка принятой команды
+        if(isButtonPressed(BUTTON_SELECT)) {
+			// Задержка для адекватной работы кнопок
             delayUs(buttonDelayUs);
-            if(irMode == IR_MODE_SEND){
-                isIrReceiveEn = 0;
-                if(irReceiveProt.currProtocolType == IR_PROTOCOL_TYPE_NEC){
+			
+			// Если мы находимся в режиме отправки команд, то отправляем ИК-команду
+            if(irMode == IR_MODE_SEND) {
+				// Выключаем прием ИК-команд, чтобы не принять то, что отправили
+                irReceiveState = DISABLE;
+				
+				// В зависимости от протокола вызываем ту или иную функцию
+                if(irProtocol.type != IR_PROTOCOL_TYPE_UNKNOWN) {
+					// Мигание зеленого светодиода говорит об успешной отправке команды
                     LED_GREEN(SET);
-                    sendNEC((uint32_t)irReceiveProt.receiveIRData1);
-                    LED_GREEN(RESET);
-                } else if(irReceiveProt.currProtocolType == IR_PROTOCOL_TYPE_PANASONIC){
-                    LED_GREEN(SET);
-                    sendPanasonic(irReceiveProt.receiveIRData1);
-                    LED_GREEN(RESET);
+                    sendReceiveIrCommad();
+					LED_GREEN(RESET);
+
                 }else {
+					// Мигание синего светодиода говорит о не успешной отправке неизвестного протокола
                     LED_BLUE(SET);
                     delayUs(buttonDelayUs);
                     LED_BLUE(RESET);
                 }
-            } else {
-                isIrReceiveEn = 1;
             }
         }
-        
-        if(irReceiveProt.isProtocolReceive && irMode != IR_MODE_SEND){
-            irReceiveProt.isProtocolReceive = 0;
+		
+		// Печатаем новую принятую команду, если она есть (и если мы не в режиме отправки команды)
+        if((irProtocol.isFullReceive) && (irMode != IR_MODE_SEND)) {
+			// Очищаем буфер дисплея
             memset(displayBuffer, 0, LCD_BUFFER_LENGTH);
             
-            lcdStruct.clearOrFillDisplay(CLEAR);
-            lcdStruct.byteIndex = 0;
-            lcdStruct.writeStringToBuffer("IR test: ");
+			// Печатаем сообщение об ИК-тесте
+            LCD_SetBufferCursor(0,0);
+            lcdStruct.writeStringToBuffer("ИК тест: ");
             
-            lcdStruct.byteIndex = DISPLAY_WIDTH;
-            lcdStruct.writeStringToBuffer("Preambula(us):");
+			// Печатаем длину преамбулы
+			LCD_SetBufferCursor(0, PAGE_2);
+            lcdStruct.writeStringToBuffer("Преамбула(мкс): ");
 			
+			// Преобразуем числовое значение в строку
 			char receiveStr_5[5] = {0};
-            sprintf(receiveStr_5, "%05d", ((unsigned int)irReceiveProt.preambula)*10);
+            sprintf(receiveStr_5, "%05d", ((unsigned int)irProtocol.preambuleTime));
             lcdStruct.writeStringToBuffer(receiveStr_5);
             
+			// Строки-буферы для печати команд
 			char receiveStr_4[5] = {0};
 			char receiveStr_8[9] = {0};
-            switch(irReceiveProt.currProtocolType){
-                // NEC protocol
+			
+			// Печать команды
+			LCD_SetBufferCursor(54,0);
+            switch(irProtocol.type)
+			{
+                // Протокол NEC
                 case IR_PROTOCOL_TYPE_NEC:
-                    lcdStruct.byteIndex = 54;
+					// Печать названия протокола
                     lcdStruct.writeStringToBuffer("NEC");
-                
-                    lcdStruct.byteIndex = DISPLAY_WIDTH*2;
-                    sprintf(receiveStr_8, "%08X", (unsigned int) irReceiveProt.receiveIRData1);
-				
+					
+					// Печать команды протокола
+					LCD_SetBufferCursor(0, PAGE_3);
+                    sprintf(receiveStr_8, "%08X", (unsigned int) irProtocol.irCommand);
                     lcdStruct.writeStringToBuffer(receiveStr_8);
                     break;
                 
-                // PANASONIC protocol
+                // Протокол PANASONIC
                 case IR_PROTOCOL_TYPE_PANASONIC:
-                    lcdStruct.byteIndex = 54;
+					// Печать названия протокола
                     lcdStruct.writeStringToBuffer("Panasonic");
                     
-                    lcdStruct.byteIndex = DISPLAY_WIDTH*2;
-                    sprintf(receiveStr_4, "%04X", (unsigned int)(irReceiveProt.receiveIRData1 >> 32));
+					// Печать команды протокола в два этапа (т.к. sprintf поддерживает только unsigned int)
+                    LCD_SetBufferCursor(0, PAGE_3);
+                    sprintf(receiveStr_4, "%04X", (unsigned int)(irProtocol.irCommand >> 32));
                     lcdStruct.writeStringToBuffer(receiveStr_4);
                     
-                    sprintf(receiveStr_8, "%08X", (unsigned int)irReceiveProt.receiveIRData1);
+                    sprintf(receiveStr_8, "%08X", (unsigned int)irProtocol.irCommand);
                     lcdStruct.writeStringToBuffer(receiveStr_8);
                     break;
                 
-                // other protocols
+                // Прочие протоколы
                 default:
-                    lcdStruct.byteIndex = 54;
+					// Печать названия протокола
                     lcdStruct.writeStringToBuffer("Unknown");
-                    lcdStruct.byteIndex = DISPLAY_WIDTH*2;
-                    
-                    sprintf(receiveStr_8, "%08X", (unsigned int) (irReceiveProt.receiveIRData2 >> 32));
+					
+					// Печать команды протокола в два этапа
+                    LCD_SetBufferCursor(0, PAGE_3);    
+                    sprintf(receiveStr_8, "%08X", (unsigned int) (irProtocol.irCommand >> 32));
                     lcdStruct.writeStringToBuffer(receiveStr_8);
                     
-                    sprintf(receiveStr_8, "%08X", (unsigned int) irReceiveProt.receiveIRData2);
+                    sprintf(receiveStr_8, "%08X", (unsigned int) irProtocol.irCommand);
                     lcdStruct.writeStringToBuffer(receiveStr_8);
-                
-                    lcdStruct.byteIndex = DISPLAY_WIDTH*3;
-                    if(irReceiveProt.dataReceiveCount > 65/4){                        
-                        sprintf(receiveStr_8, "%08X", (unsigned int) (irReceiveProt.receiveIRData1 >> 32));
-                        lcdStruct.writeStringToBuffer(receiveStr_8);
-                        
-                        sprintf(receiveStr_8, "%08X", (unsigned int) irReceiveProt.receiveIRData1);
-                        lcdStruct.writeStringToBuffer(receiveStr_8);
-                    }
                     break;
             }
+			
+			// Переход в режим отправки команды или обнуление данных протокола
             if(irMode == IR_MODE_CAPTURE){
                 irMode = IR_MODE_SEND;
-                isIrReceiveEn = 0;
-            }
+                irReceiveState = DISABLE;
+            } else {
+				irProtocol.isFullReceive = 0;
+				irProtocol.bitsCount = 0;
+				irProtocol.irCmdBitCounter = 0;
+				irProtocol.irCommand = 0;
+				irProtocol.preambuleTime = 0;
+				irProtocol.type = 0;
+				irProtocol.repeatLastCmd = 0;
+			}
             drawIrMode();
             lcdStruct.displayFullUpdate();
         }
+		
+		// Вернуться в главное меню
         if(isButtonPressed(BUTTON_BACK)){
-            isIrReceiveEn = 1;
+            irReceiveState = ENABLE;
             lcdStruct.clearOrFillDisplay(CLEAR);
-            irReceiveProt.receiveType = IR_RECEIVE_TYPE_NORMAL;
+            irReceiveType = IR_RECEIVE_TYPE_RUN_COMMAND;
             return;
         }
     }
@@ -208,6 +254,10 @@ void LCD_StartMainMenu()
     
 	/* Основной цикл работы с меню */
     while(1){
+		
+		// Анализ ИК-протокола и выполнение команды
+		irProtocolAnalyze();
+		
 		/* Движение вправо по списку */
         if(isButtonPressed(BUTTON_RIGHT))
         {
@@ -269,7 +319,7 @@ void LCD_StartMainMenu()
 					speakerMenu();
 					break;
 				case 4:
-					irProtocolAnalyze();
+					irProtocolTest();
 					break;
 				default: ;
 			}

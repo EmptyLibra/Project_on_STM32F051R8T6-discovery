@@ -11,7 +11,8 @@
 #include "my_uart.h"
 
 /*============================== Структуры и переменные ==============================*/
-FIFO_CREATE(my_fifo);                                     // my FIFO for uart
+// fifo для хранения всего, принятого по uart
+FIFO_SHORT_DEFINITION(uint8_t, 256, my_fifo);
 
 /*--- Для работы с Bluetooth ---*/
 static uint16_t commandByte = 0;   /* Тип команды по bluetooth */
@@ -27,7 +28,7 @@ void USART1_IRQHandler()
 		FIFO_PUSH(my_fifo, UART_RECEIVE_DATA());
         
 		/* Если пришла целая команда */
-        if(FIFO_COUNT_ELEMENTS(my_fifo) >= 4) {
+        if(FIFO_ELEMENTS_COUNT(my_fifo) >= 4) {
 			/* Записываем тип команды */
             commandByte = ((uint16_t)FIFO_POP(my_fifo) << 8) + (uint16_t)FIFO_POP(my_fifo);
 			
@@ -57,10 +58,10 @@ void USART1_IRQHandler()
                             break;
                         
                         case BT_COMMAND_SONG_PAUSE:
-                            musicSet.isSongPlay = 0;
+                            songPause();
                             break;
                         case BT_COMMAND_SONG_PLAY:
-                            musicSet.isSongPlay = 1;
+                            song.isSongPlay = 1;
                             break;
                         
                         case BT_COMMAND_SONG_ELISE:
@@ -71,7 +72,7 @@ void USART1_IRQHandler()
                             break;
                         case BT_COMMAND_SONG_TETRIS:
                             playBackgroundSong(SPEAKER_TYPE_BIG, TetrisGameSong, TetrisGameSong_Beats, sizeof(TetrisGameSong)/2, 140,1);
-                            musicSet.isCyclickSong = 1;
+                            song.isCyclickSong = 1;
                             break;
                         default:
 							LED_BLUE(!GPIO_ReadOutputDataBit(LEDS_PORT, LED_BLUE_PIN));

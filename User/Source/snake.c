@@ -6,8 +6,8 @@ static Snake snake, defaultSnake = {{START_SNAKE_ROW, START_SNAKE_COL + START_SN
                                     {START_SNAKE_ROW, START_SNAKE_COL, RIGHT}, RIGHT, START_SNAKE_LENGTH, 0};
 static Food food, defaultFood = {0,0,0};
 static uint16_t score = 0, winScore = DISPLAY_HEIGHT*DISPLAY_WIDTH - START_SNAKE_LENGTH - 10;
-static uint8_t isSnakeStop = SNAKE_NOT_STOP, gameMode = 0, isSnakeSong;
-
+static uint8_t isSnakeStop = SNAKE_NOT_STOP;
+uint8_t isSnakeSong = SNAKE_NOT_STOP, gameMode = 0;
 
 //--init function-------------------------------
 void snakeInit(){
@@ -653,6 +653,9 @@ void difficultySelection(){
     drawDiffMenu();
     
     while(1){
+		// Анализ ИК-протокола и выполнение команды
+		irProtocolAnalyze();
+		
         if(isButtonPressed(BUTTON_LEFT)){
             delayUs(10000);
             gameMode -= (gameMode == 0 ? 0 : 1);
@@ -699,6 +702,9 @@ void songSelect(){
     drawSongMenu();
     
     while(1){
+		// Анализ ИК-протокола и выполнение команды
+		irProtocolAnalyze();
+		
         if(isButtonPressed(BUTTON_LEFT)){
             delayUs(10000);
             isSnakeSong -= (isSnakeSong == 0 ? 0 : 1);
@@ -726,17 +732,17 @@ void startSnakeGame(void){
     // game initialise
     gameInit();
     
-    uint16_t SnakeGameSong[]       = {C4, D4,   F4, D5, P, A4_B, A4, G4,F4,     F4, D5,P, D5, C4, D4,   F4, D5, P, A4_B, A4, G4,F4,   F4, E4, D4, C4,    E4, D5, P, F4, C4, D4, F4,   F4, D5, P, D5, P};
-    uint8_t SnakeGameSong_Beats[]  = {32, 64,   64, 32, 32,32,   32, 32,32,     32, 32,32,32, 32, 64,   64, 32, 32,32,   32, 32,32,   64, 64, 64, 64,    64, 32, 32,32, 32, 32, 32,   32, 32, 32,64, 32};
-        
     // play music
     if(isSnakeSong){
-        playBackgroundSong(SPEAKER_TYPE_BIG, SnakeGameSong, SnakeGameSong_Beats, sizeof(SnakeGameSong)/2, 200,1);
+        playBackgroundSong(SPEAKER_TYPE_BIG, SnakeGameSong, SnakeGameSong_Beats, sizeof(SnakeGameSong)/2, 200, 1);
     }
     
     // main game loop
     Direction newDir = snake.newDir;
     while(!isSnakeStop){
+		// Анализ ИК-протокола и выполнение команды
+		irProtocolAnalyze();
+		
         // get new snake direction from user
         if(isButtonPressed(BUTTON_TOP)){
             if(gameMode == GAME_EASY_MODE){
@@ -780,9 +786,9 @@ void startSnakeGame(void){
         }
         #ifdef BUTTON_BACK
             if(isButtonPressed(BUTTON_BACK)){
-                musicSet.isCyclickSong = 0;
-                musicSet.noteNumber = song.noteCount;
+                songStop();
                 lcdStruct.clearOrFillDisplay(CLEAR);
+
                 return;
             }
         #endif
@@ -792,14 +798,14 @@ void startSnakeGame(void){
             if(isButtonPressed(BUTTON_SELECT)){
                 displayBuffer[0] = (gameMode == GAME_EASY_MODE ? 0x01 : 0xFE);
                 lcdStruct.displayFullUpdate();
-                musicSet.isCyclickSong = 0;
-                musicSet.noteNumber = song.noteCount;
+                songPause();
                 delayUs(1000000);
                 
-                while(!isButtonPressed(BUTTON_SELECT)){}
-                if(isSnakeSong){
-                    playBackgroundSong(SPEAKER_TYPE_BIG, SnakeGameSong, SnakeGameSong_Beats, sizeof(SnakeGameSong)/2, 200,1);
-                }
+                while(!isButtonPressed(BUTTON_SELECT)){irProtocolAnalyze();}
+				if(isSnakeSong) {
+					song.isSongPlay = 1;
+				}
+				
                 displayBuffer[0] = (gameMode == GAME_EASY_MODE ? 0x00 : 0xFF);
                 lcdStruct.displayFullUpdate();
                 delayUs(500000);
@@ -816,9 +822,8 @@ void startSnakeGame(void){
     }
     
     //-----------game end--------
-    musicSet.isCyclickSong = 0;
-    musicSet.noteNumber = song.noteCount;
-    
+    songStop();
+	
     // draw win or lose message
     lcdStruct.byteIndex = DISPLAY_WIDTH + 30;
     lcdStruct.writeStringToBuffer((score != winScore ? "You LOSE!" : "You WIN!"));

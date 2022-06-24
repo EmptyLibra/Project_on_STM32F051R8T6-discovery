@@ -296,6 +296,9 @@ void startGame2048(){
     delayUs(1000);
     uint8_t gameStatus = GAME_CONTINUE;
     while(1){
+		// Анализ ИК-протокола и выполнение команды
+		irProtocolAnalyze();
+		
         if(isButtonPressed(BUTTON_TOP)){
             moveAndDrawMatrix(UP);
         }

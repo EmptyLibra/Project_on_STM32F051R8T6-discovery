@@ -541,6 +541,12 @@ uint8_t LCD_GetHorizontalByte(uint8_t Row, uint8_t Col)
 	return Byte;
 }
 
+/* Установка адреса курсора в буфере дисплея */
+void LCD_SetBufferCursor(uint8_t xCoord, uint8_t page)
+{
+	// Устанавливаем адрес байта в буфере дисплея
+	lcdStruct.byteIndex = page*DISPLAY_WIDTH + xCoord;
+}
 /* Запись одного символа по его индексу в буфер (внутреняя функция)
  * Автоматически следит за индексом текущего байта и переходит на новую страницу или кристалл.
  * symbolIndex - индекс символа из библиотеки символов LIBRARY_SYMBOL, который надо записать. */
@@ -644,8 +650,16 @@ void LCD_writeHorStringToBuffer(const char* str)
 	}
 }
 
-/* Рисование одной выбранной страницы из буфера дидсплея
- * page - выбранная страница (PAGE_1 - PAGE_8)*/
+/* Стирает выбранную страницы в буфере 
+ * page - выбранная страница (PAGE_1 - PAGE_8) */
+void LCD_ClearBufferPage(uint8_t page)
+{
+	for(uint32_t i = page*DISPLAY_WIDTH; i < (page+1)*DISPLAY_WIDTH; i++) {
+		displayBuffer[i] = 0;
+	}
+}
+/* Рисование одной выбранной страницы из буфера дидсплея (адекватно работает только на первых 4-х)
+ * page - выбранная страница (PAGE_1 - PAGE_4)*/
 void LCD_DrawPageFromBuffer(uint8_t page)
 {
     for (uint8_t Row = (page << 3); Row < ((page+1) << 3); Row++)
