@@ -5,6 +5,8 @@
 #include "speaker.h"
 #include <string.h> // for memset() and memcpy()
 #include <stdio.h>  // for sprintf()
+#include "ir_remote_control.h"
+
 #define FIGURE_COUNT sizeof(FIGURES)/8
 
 // game event
@@ -14,7 +16,7 @@
 
 #define TETRIS_FIELD_WIDTH 20
 //=================Variables====================================================
-
+extern uint8_t isTetrisSong;
 
 //=================Functions====================================================
 static void gameInit(void);

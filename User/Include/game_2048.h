@@ -4,6 +4,7 @@
 #include "lcd_lib.h"
 #include <string.h>  // for memset
 #include <stdio.h>  // for sprintf
+#include "ir_remote_control.h"
 
 //---------------------------------Defines--------------------------------------
 #define FIELD_WIDTH  73
@@ -28,7 +29,6 @@ typedef struct Matrix{
 
 //-------------------------------Functions--------------------------------------
 static void gameInit(void);                                                      // clear all variables, draw start field
-
 //----write functions----
 static void writeScore(void);                                                    // write new score to buffer (not yet draw)
 static void writeNumberToField(uint16_t number, uint8_t row, uint8_t col);       // splits number into digits and write to buffer

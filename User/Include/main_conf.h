@@ -4,7 +4,7 @@
   * @version V0.0.1
   * @date    06-April-2022
   * @brief   Файл с основными настройками для всего проекта.
-  *          Содержит основные функции инициализации и макросы для кнопок, светодиодов, системного и игрового таймера.
+  *          Содержит основные функции инициализации и макросы для кнопок, светодиодов, системного.
   *          Настройка пинов для кнопок и светодиодов задаются здесь. 
   */
 #ifndef __MAIN_CONF_H
@@ -49,10 +49,8 @@
 #define SYSTICK_ENABLE_MSK    (0x1UL)
 #define SYSTICK_DISABLE_MSK   (0xFFEUL)
 
-/*------------------- Игровой таймер -------------------*/
-/* Таймер для генерации случайных чисел в играх */
-#define GAME_TIMER TIM3
 
+#define GAME_TIMER TIM2
 /*============================== Стуктуры и переменные ==============================*/
 extern RCC_ClocksTypeDef clockStruct;  /* Структура с информацией о частотах тактирования */          
 extern uint32_t buttonDelayUs;         /* Величина задержки для кнопок в мкс */
@@ -65,6 +63,5 @@ uint8_t isButtonPressed(uint16_t pin);
 void delayInit(void);
 void ledPinsInit(void);
 void buttonPinsInit(void);
-void gameTimerInit(void);
 
 #endif

@@ -184,9 +184,11 @@ void LCD_Init(void);
 
 /*------------- Функции для работы с буфером дисплея -----------------*/
 uint8_t LCD_GetHorizontalByte(uint8_t Row, uint8_t Col);
+void LCD_SetBufferCursor(uint8_t xCoord, uint8_t page);
 void LCD_WriteStringToBuffer(const char* str);
 void LCD_writeHorStringToBuffer(const char* str);
 void LCD_BufferShiftPage(uint8_t page, uint8_t direct, uint8_t isCyclic);
+void LCD_ClearBufferPage(uint8_t page);
 void LCD_DrawPageFromBuffer(uint8_t page);
 void LCD_DisplayFullUpdate(void);
 

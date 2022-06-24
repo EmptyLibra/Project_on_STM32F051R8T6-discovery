@@ -5,6 +5,7 @@
 #include <string.h> // for memset()
 #include <stdio.h>  // for sprintf()
 #include "speaker.h"
+#include "ir_remote_control.h"
 
 #define START_SNAKE_LENGTH 8
 // real row and col one bigger
@@ -47,6 +48,9 @@ typedef struct Food{
     uint8_t row, col;
     uint8_t isBig;
 } Food;
+
+extern uint8_t isSnakeSong, gameMode;
+
 //
 //--init function-------------------------------
 void snakeInit(void);
