@@ -1,0 +1,21 @@
+--cpu Cortex-M0
+".\objects\main.o"
+".\objects\main_conf.o"
+".\objects\lcd_lib.o"
+".\objects\lcd_main_menu.o"
+".\objects\my_uart.o"
+".\objects\ir_remote_control.o"
+".\objects\speaker.o"
+".\objects\game_snake.o"
+".\objects\game_2048.o"
+".\objects\game_tetris.o"
+".\objects\stm32f0xx_gpio.o"
+".\objects\stm32f0xx_rcc.o"
+".\objects\stm32f0xx_tim.o"
+".\objects\stm32f0xx_usart.o"
+".\objects\stm32f0xx_spi.o"
+".\objects\system_stm32f0xx.o"
+".\objects\startup_stm32f051x8.o"
+--ro-base 0x08000000 --entry 0x08000000 --rw-base 0x20000000 --entry Reset_Handler --first __Vectors --strict --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
+--info sizes --info totals --info unused --info veneers
+--list ".\Listings\STM32F051R8Project.map" -o .\Objects\STM32F051R8Project.axf

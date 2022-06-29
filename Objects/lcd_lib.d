@@ -1,0 +1,16 @@
+.\objects\lcd_lib.o: User\Source\lcd_lib.c
+.\objects\lcd_lib.o: .\User\Include\lcd_lib.h
+.\objects\lcd_lib.o: .\User\Include\main_conf.h
+.\objects\lcd_lib.o: .\CMSIS\Device\ST\STM32F0xx\Include\stm32f0xx.h
+.\objects\lcd_lib.o: .\CMSIS\Include\core_cm0.h
+.\objects\lcd_lib.o: D:\DownloadedApplications\All_for_MCU\KeiluVision5_(MDK_ARM)_IDE\ARM\ARMCC\Bin\..\include\stdint.h
+.\objects\lcd_lib.o: .\CMSIS\Include\core_cmInstr.h
+.\objects\lcd_lib.o: .\CMSIS\Include\core_cmFunc.h
+.\objects\lcd_lib.o: .\CMSIS\Device\ST\STM32F0xx\Include\system_stm32f0xx.h
+.\objects\lcd_lib.o: .\STM32F0xx_StdPeriph_Driver\stm32f0xx_conf.h
+.\objects\lcd_lib.o: .\STM32F0xx_StdPeriph_Driver\inc\stm32f0xx_gpio.h
+.\objects\lcd_lib.o: .\CMSIS\Device\ST\STM32F0xx\Include\stm32f0xx.h
+.\objects\lcd_lib.o: .\STM32F0xx_StdPeriph_Driver\inc\stm32f0xx_rcc.h
+.\objects\lcd_lib.o: .\STM32F0xx_StdPeriph_Driver\inc\stm32f0xx_tim.h
+.\objects\lcd_lib.o: .\STM32F0xx_StdPeriph_Driver\inc\stm32f0xx_usart.h
+.\objects\lcd_lib.o: .\STM32F0xx_StdPeriph_Driver\inc\stm32f0xx_spi.h
