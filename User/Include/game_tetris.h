@@ -1,40 +1,47 @@
-#ifndef TETRIS_HEADER
-#define TETRIS_HEADER
+/** Using UTF8 file encoding
+  * @file    game_tetris.h
+  * @author  Shalaev Egor
+  * @version V0.0.1
+  * @date    26-June-2022
+  * @brief   Эта библиотека реализует игру Тетрис. Данный файл подключает нужные библиотеки, 
+  *          содержит необходимые макросы, а также объявления функций */
+#ifndef __GAME_TETRIS_H
+#define __GAME_TETRIS_H
 
-#include "lcd_lib.h"
-#include "speaker.h"
-#include <string.h> // for memset() and memcpy()
-#include <stdio.h>  // for sprintf()
-#include "ir_remote_control.h"
+/*============================== Подключение библиотек ==============================*/
+#include "lcd_lib.h"            // Библиотека дисплея LCD12864
+#include "ir_remote_control.h"  // Библиотека общения в ИК-диапазоне (приемник-передатчик)
+#include "speaker.h"            // Библиотека динамика для проигрывания музыки
+#include <string.h>             // Библиотека для функции memset
+#include <stdio.h>              // Библиотека для функции sprinf
 
+/*============================== Макросы ==============================*/
+// Общее количество различных фигур
 #define FIGURE_COUNT sizeof(FIGURES)/8
 
-// game event
-#define GAME_LOSE 0
-#define GAME_WIN 1
+// Состояния игры
+#define GAME_LOSE     0
+#define GAME_WIN      1
 #define GAME_CONTINUE 2
 
+// Ширина поля для тетриса
 #define TETRIS_FIELD_WIDTH 20
-//=================Variables====================================================
-extern uint8_t isTetrisSong;
 
-//=================Functions====================================================
+/*============================== Функции ==============================*/
 static void gameInit(void);
 
-//---other functions----------------------
-void genNextFigType(void);
-void writeFigToField(void);
-uint8_t isLost(void);
-void shiftAllDown(uint16_t lineNumber);
-void checkAndShiftLines(void);
-void updateScoreAndFigure(void);
+static void genNextFigType(void);
+static void writeFigToField(void);
+static uint8_t isLost(void);
+static void shiftAllDown(uint16_t lineNumber);
+static void checkAndShiftLines(void);
+static void updateScoreAndFigure(void);
 
-//---move functions----------------
-void rotate(void);
-void shiftLeft(void);
-void shiftRight(void);
-uint8_t shiftDown(void);
+//---Функции движения фигуры----------------
+static void rotate(void);
+static void shiftLeft(void);
+static void shiftRight(void);
+static uint8_t shiftDown(void);
 
-//---Main function----------------
 void startTetrisGame(void);
 #endif

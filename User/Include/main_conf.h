@@ -49,13 +49,15 @@
 #define SYSTICK_ENABLE_MSK    (0x1UL)
 #define SYSTICK_DISABLE_MSK   (0xFFEUL)
 
+// Максимальное число, которое может сгенерироваться
+#define MAX_RAND_NUM 0x7fffffffU
 
-#define GAME_TIMER TIM2
 /*============================== Стуктуры и переменные ==============================*/
 extern RCC_ClocksTypeDef clockStruct;  /* Структура с информацией о частотах тактирования */          
 extern uint32_t buttonDelayUs;         /* Величина задержки для кнопок в мкс */
 
 /*============================== Функции ==============================*/
+unsigned int randLcg(void);
 int abs(int num);
 void delayUs(uint32_t mcs);
 uint8_t isButtonPressed(uint16_t pin);

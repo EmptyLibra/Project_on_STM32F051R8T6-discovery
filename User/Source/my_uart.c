@@ -82,7 +82,7 @@ void USART1_IRQHandler()
                 }
             }
 			/* Очищаем FIFO */
-            FIFO_FLUSH(my_fifo);
+            FIFO_CLAER(my_fifo);
         }
 	}
 }

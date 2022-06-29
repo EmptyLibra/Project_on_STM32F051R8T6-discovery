@@ -608,7 +608,7 @@ void LCD_WriteStringToBuffer(const char* str)
 	}
 }
 
-/* Запись горизонтальной строки символов в буфер 
+/* Запись горизонтальной строки символов в буфер (проблемы с русскими буквами!!!!!!) 
  * str - срока, которую надо записать. */
 void LCD_writeHorStringToBuffer(const char* str)
 {

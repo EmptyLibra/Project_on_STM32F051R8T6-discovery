@@ -85,7 +85,7 @@
 #define FIFO_IS_EMPTY(_id)     (_id.pushIndex == _id.popIndex)
 
 /* Очистка fifo (сами элементы fifo не меняются, только лишь зануляются указатели) */
-#define FIFO_FLUSH(_id)         do{_id.popIndex=0; _id.pushIndex=0;} while (0)
+#define FIFO_CLAER(_id)         do{_id.popIndex=0; _id.pushIndex=0;} while (0)
 
 /* Возвращает следующий элемент из fifo и удаляет его из памяти (не защищенный режим)
  * Должно вызываться только тогда, когда fifo не пусто */
@@ -123,11 +123,10 @@ do{                                                             \
  * Если fifo полное, то элемент будет потерян */
 #define FIFO_PUSH_SAFE(_id, newdata)                                      \
 do{                                                                       \
-    __typeof__(_id.pushIndex) _next = (_id.pushIndex+1)&FIFO_MASK(_id); \
-    if(_next != _id.popIndex)                                            \
+    if(!FIFO_IS_FULL(_id))                                                \
     {                                                                     \
-        _id.data[(_id.pushIndex) & FIFO_MASK(_id)] = (newdata);          \
-        _id.pushIndex = _next;                                           \
+        _id.data[(_id.pushIndex) & FIFO_MASK(_id)] = (newdata);           \
+        _id.pushIndex = (_id.pushIndex+1)&FIFO_MASK(_id);                 \
     }                                                                     \
 }while(0)
 
@@ -135,7 +134,7 @@ do{                                                                       \
 /* Позволяет прочитать элемент из fifo, не удаляя его
 *  _id:     идентификатор fifo
 *  index:   Смещение относительно первого элемента в fifo */
-#define FIFO_READ_DATA(_id, index)   _id.data[(_id.popIndex+(index))&MASK_MAX_ELEMENTS(_id)]
+#define FIFO_READ_DATA(_id, index)   _id.data[(_id.popIndex+(index))&FIFO_MASK(_id)]
 
 /* Удаляет из fifo указанное количество элемнтов
  * Должно использоваться только тогда, когда в fifo достаточно элементов для удаления */
@@ -144,9 +143,9 @@ do{                                                                       \
 /* Безопасное удаление указанного количества элементов или меньше из fifo */
 #define FIFO_REMOVE_SAFE(_id, amount)                           \
 do{                                                             \
-    if(COUNT_ELEMENTS(_id) >= (amount))                         \
-        FIFO_REMOVE(_id, (amount));                             \
+    if(FIFO_ELEMENTS_COUNT(_id) >= (amount))                         \
+        FIFO_REMOVE_ELEMENTS(_id, (amount));                             \
     else                                                        \
-        FIFO_FLUSH(_id);                                        \
+        FIFO_CLAER(_id);                                        \
 }while(0)*/
 #endif

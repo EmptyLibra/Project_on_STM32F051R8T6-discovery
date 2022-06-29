@@ -1,83 +1,104 @@
+/** Using UTF8 file encoding
+  * @file    game_tetris.c
+  * @author  Shalaev Egor
+  * @version V0.0.1
+  * @date    26-June-2022
+  * @brief   Эта библиотека реализует игру Тетрис.
+  * Экран следует расположить вертикально, а также изменены назначения кнопок. 
+  * В этой игре 7 стандартных фигур (у каждой есть своё имя):
+  * (фигуры потом записываются в массив в виде байт. Запись начинается с левого верхнего угла картинки)
+	* Куб - Smashboy
+	*  {0,0, 0,0, 0,0, 0,0} <- young pixel (0x00)
+	*  {0,0, 0,0, 0,0, 0,0}
+	*  {0,0, 1,1, 1,1, 0,0}
+	*  {0,0, 1,1, 1,1, 0,0}
+	*  {0,0, 1,1, 1,1, 0,0}
+	*  {0,0, 1,1, 1,1, 0,0}
+	*  {0,0, 0,0, 0,0, 0,0}
+	*  {0,0, 0,0, 0,0, 0,0}  
+
+	* T-образная - Teewee
+	*  {0,0, 0,0, 1,1, 0,0} <- young pixel (0x0C)
+	*  {0,0, 0,0, 1,1, 0,0}
+	*  {0,0, 1,1, 1,1, 0,0}
+	*  {0,0, 1,1, 1,1, 0,0}
+	*  {0,0, 0,0, 1,1, 0,0}
+	*  {0,0, 0,0, 1,1, 0,0}
+	*  {0,0, 0,0, 0,0, 0,0}
+	*  {0,0, 0,0, 0,0, 0,0}
+
+	* J-образная - Orenge Ricky
+	*  {0,0, 0,0, 1,1, 1,1} <- young pixel
+	*  {0,0, 0,0, 1,1, 1,1}
+	*  {0,0, 0,0, 1,1, 0,0}
+	*  {0,0, 0,0, 1,1, 0,0}
+	*  {0,0, 0,0, 1,1, 0,0}
+	*  {0,0, 0,0, 1,1, 0,0}
+	*  {0,0, 0,0, 0,0, 0,0}
+	*  {0,0, 0,0, 0,0, 0,0} 
+
+	* L-образная - Blue Ricky
+	*  {0,0, 1,1, 1,1, 0,0} <- young pixel
+	*  {0,0, 1,1, 1,1, 0,0}
+	*  {0,0, 0,0, 1,1, 0,0}
+	*  {0,0, 0,0, 1,1, 0,0}
+	*  {0,0, 0,0, 1,1, 0,0}
+	*  {0,0, 0,0, 1,1, 0,0}
+	*  {0,0, 0,0, 0,0, 0,0}
+	*  {0,0, 0,0, 0,0, 0,0}
+
+	* Z-образная - Cleveland Z
+	*  {0,0, 0,0, 1,1, 0,0} <- young pixel
+	*  {0,0, 0,0, 1,1, 0,0}
+	*  {0,0, 1,1, 1,1, 0,0}
+	*  {0,0, 1,1, 1,1, 0,0}
+	*  {0,0, 1,1, 0,0, 0,0}
+	*  {0,0, 1,1, 0,0, 0,0}
+	*  {0,0, 0,0, 0,0, 0,0}
+	*  {0,0, 0,0, 0,0, 0,0}
+
+	* S-образная - Rhode island Z
+	*  {0,0, 1,1, 0,0, 0,0} <- young pixel
+	*  {0,0, 1,1, 0,0, 0,0}
+	*  {0,0, 1,1, 1,1, 0,0}
+	*  {0,0, 1,1, 1,1, 0,0}
+	*  {0,0, 0,0, 1,1, 0,0}
+	*  {0,0, 0,0, 1,1, 0,0}
+	*  {0,0, 0,0, 0,0, 0,0}
+	*  {0,0, 0,0, 0,0, 0,0}
+
+	* I-образная - Hero
+	*  {0,0, 1,1, 0,0, 0,0} <- young pixel
+	*  {0,0, 1,1, 0,0, 0,0}
+	*  {0,0, 1,1, 0,0, 0,0}
+	*  {0,0, 1,1, 0,0, 0,0}
+	*  {0,0, 1,1, 0,0, 0,0}
+	*  {0,0, 1,1, 0,0, 0,0}
+	*  {0,0, 1,1, 0,0, 0,0}
+	*  {0,0, 1,1, 0,0, 0,0}    */
+  
 #include "game_tetris.h"
 
-//=================Variables====================================================
-static int curFigX = 0, curFigY = 8; // coord of up right corner of figure
-static uint16_t curFigType = 0, nextFigType = 0, score = 0, winScore = 60000,lines = 0;
+/*============================== Структуры и переменные ==============================*/
+// Текущие координаты верхнего правого угла фигуры
+static int curFigX = 0, curFigY = 8;
+
+// Тип фигуры, тип следующей фигуры, счёт, счёт для победы, количество удалённых строк
+static uint16_t curFigType = 0, nextFigType = 0, score = 0, winScore = 60000, lines = 0;
+
+// Массив с текущей фигурой
 static uint8_t curFig[8] = {0x00};
+
+// Состояние игры и флаг, является ли это первым запуском игры
 static uint8_t gameState = GAME_CONTINUE, fisrtStart = 1;
-static long curDelay = 100000;
-uint8_t isTetrisSong = 0;
-//------list of figures----------
-/* Cube - Smashboy
- *  {0,0, 0,0, 0,0, 0,0} <- young pixel
- *  {0,0, 0,0, 0,0, 0,0}
- *  {0,0, 1,1, 1,1, 0,0}
- *  {0,0, 1,1, 1,1, 0,0}
- *  {0,0, 1,1, 1,1, 0,0}
- *  {0,0, 1,1, 1,1, 0,0}
- *  {0,0, 0,0, 0,0, 0,0}
- *  {0,0, 0,0, 0,0, 0,0}  
- 
- * T-shaped - Teewee
- *  {0,0, 0,0, 1,1, 0,0} <- young pixel
- *  {0,0, 0,0, 1,1, 0,0}
- *  {0,0, 1,1, 1,1, 0,0}
- *  {0,0, 1,1, 1,1, 0,0}
- *  {0,0, 0,0, 1,1, 0,0}
- *  {0,0, 0,0, 1,1, 0,0}
- *  {0,0, 0,0, 0,0, 0,0}
- *  {0,0, 0,0, 0,0, 0,0}
- 
- J-shaped - Orenge Ricky
- *  {0,0, 0,0, 1,1, 1,1} <- young pixel
- *  {0,0, 0,0, 1,1, 1,1}
- *  {0,0, 0,0, 1,1, 0,0}
- *  {0,0, 0,0, 1,1, 0,0}
- *  {0,0, 0,0, 1,1, 0,0}
- *  {0,0, 0,0, 1,1, 0,0}
- *  {0,0, 0,0, 0,0, 0,0}
- *  {0,0, 0,0, 0,0, 0,0} 
- 
- L-shaped - Blue Ricky
- *  {0,0, 1,1, 1,1, 0,0} <- young pixel
- *  {0,0, 1,1, 1,1, 0,0}
- *  {0,0, 0,0, 1,1, 0,0}
- *  {0,0, 0,0, 1,1, 0,0}
- *  {0,0, 0,0, 1,1, 0,0}
- *  {0,0, 0,0, 1,1, 0,0}
- *  {0,0, 0,0, 0,0, 0,0}
- *  {0,0, 0,0, 0,0, 0,0}
- 
- Z-shaped - Cleveland Z
- *  {0,0, 0,0, 1,1, 0,0} <- young pixel
- *  {0,0, 0,0, 1,1, 0,0}
- *  {0,0, 1,1, 1,1, 0,0}
- *  {0,0, 1,1, 1,1, 0,0}
- *  {0,0, 1,1, 0,0, 0,0}
- *  {0,0, 1,1, 0,0, 0,0}
- *  {0,0, 0,0, 0,0, 0,0}
- *  {0,0, 0,0, 0,0, 0,0}
- 
- S-shaped - Rhode island Z
- *  {0,0, 1,1, 0,0, 0,0} <- young pixel
- *  {0,0, 1,1, 0,0, 0,0}
- *  {0,0, 1,1, 1,1, 0,0}
- *  {0,0, 1,1, 1,1, 0,0}
- *  {0,0, 0,0, 1,1, 0,0}
- *  {0,0, 0,0, 1,1, 0,0}
- *  {0,0, 0,0, 0,0, 0,0}
- *  {0,0, 0,0, 0,0, 0,0}
- 
- I-shaped - Hero
- *  {0,0, 1,1, 0,0, 0,0} <- young pixel
- *  {0,0, 1,1, 0,0, 0,0}
- *  {0,0, 1,1, 0,0, 0,0}
- *  {0,0, 1,1, 0,0, 0,0}
- *  {0,0, 1,1, 0,0, 0,0}
- *  {0,0, 1,1, 0,0, 0,0}
- *  {0,0, 1,1, 0,0, 0,0}
- *  {0,0, 1,1, 0,0, 0,0}
- */
+
+// Текущая задержка между циклами отрисовки (отвечает за скорость игры)
+static long curDelay = 30000;
+
+// Играет ли сейчас песня из тетриса
+static uint8_t isTetrisSong = 0;
+
+// Массив со всеми фигурами
 static uint8_t FIGURES[] = { 
     0x00, 0x00, 0x3C, 0x3C, 0x3C, 0x3C, 0x00, 0x00, // Cube - Smashboy
     0x0C, 0x0C, 0x3C, 0x3C, 0x0C, 0x0C, 0x00, 0x00, // T-shaped - Teewee
@@ -89,35 +110,39 @@ static uint8_t FIGURES[] = {
 };
 
 //
-//=================Functions====================================================
-void gameInit(){
-    // set default data
+/*============================== Функции ==============================*/
+/* Инициализация игры */
+void gameInit(void)
+{
+    // Установка значений по-умолчанию
     gameState = GAME_CONTINUE;
     curFigX = 0; curFigY = 8;
     score = 0; lines = 0;
-    curDelay = 100000;
+    curDelay = 30000;
     fisrtStart = 1;
     memset(displayBuffer, 0, LCD_BUFFER_LENGTH);
     
-    // generated current and next figure
+    // Генерация текущей и следующей фигуры
     genNextFigType();
     
-    // write current figure to field
+    // Запись текущей фигуры на поле
     writeFigToField();
     
-    // write border line
-    uint16_t index;
-    for(index = 0; index < DISPLAY_WIDTH; index++){
+    // Рисуем границу поля
+    for(uint16_t index = 0; index < DISPLAY_WIDTH; index++){
         displayBuffer[(TETRIS_FIELD_WIDTH/8)*DISPLAY_WIDTH + index] |= (0x01 << TETRIS_FIELD_WIDTH%8);
     }
     
+	// Записываем счёт и отрисовываем буфер дисплея
     updateScoreAndFigure();
     lcdStruct.displayFullUpdate();
 }
 //
-//---other functions----------------------
-uint8_t tgm3Randomizer(){
-    // create 35 pool
+/* Специальный генератор типов фигур, предотвращающий "засухи" и "наводнения" фигур 
+ * @retval: тип очередной фигуры*/
+uint8_t tgm3Randomizer(void)
+{
+    // Мешок из 35 типов фигур
     uint8_t pool[35] = {
         6, 6, 2, 6, 3, 1, 1, 
         6, 2, 5, 0, 3, 4, 0, 
@@ -126,8 +151,8 @@ uint8_t tgm3Randomizer(){
         3, 1, 4, 1, 5, 4, 2
     };
     
-    // special first piece
-    uint8_t firstPiece = GAME_TIMER->CNT % 4;
+    // Специальный первый кусочек
+    uint8_t firstPiece = randLcg() % 4;
     static uint8_t firstGen = 1;
     if(firstGen){
         firstGen = 0;
@@ -139,7 +164,7 @@ uint8_t tgm3Randomizer(){
     uint8_t roll, i, piece;
     while(1){
         for(roll = 0; roll <6; roll++){
-            i = GAME_TIMER->CNT % 35;
+            i = randLcg() % 35;
             piece = pool[i];            
             
             uint8_t isExist = 0, j;
@@ -155,7 +180,7 @@ uint8_t tgm3Randomizer(){
             }
         }
         
-        // shift history and add new piece
+        // Сдвигаем историю и добавляем новый кусочек
         for(i = 0; i < 3; i++){
             history[i] = history[i+1];
         }
@@ -165,7 +190,9 @@ uint8_t tgm3Randomizer(){
     }
 }
 
-void genNextFigType(){
+/* Генерирует новый тип фигуры */
+void genNextFigType(void)
+{
     curFigX = 0; curFigY = 8;
     if(fisrtStart){
         fisrtStart = 0;
@@ -181,10 +208,12 @@ void genNextFigType(){
     }
 }
 
-void writeFigToField(){
+/* Запись фигуры в поле */
+void writeFigToField(void)
+{
     uint8_t col, row = curFigY+1;
     
-    // if empty string of figure is behind the screen right
+    // Если пустая часть фигуры находится за экраном справа
     if(curFigY < 0){
         for(col = 0; col < 8; col++){
             displayBuffer[curFigX+col] |= (curFig[col] >> -curFigY);
@@ -192,7 +221,7 @@ void writeFigToField(){
         return;
     }
     
-    // the same, but left
+    // Тоже самое, но слево
     if(curFigY > DISPLAY_HEIGHT-8){
         for(col = 0; col < 8; col++){
             displayBuffer[DISPLAY_HEIGHT/8*DISPLAY_WIDTH + curFigX+col] |= (curFig[col] << curFigY%8);
@@ -200,11 +229,11 @@ void writeFigToField(){
         return;
     }
     
-    // separate figure into to parts (on first page and on second page)
-    // count, how many lines one one page    
+    // Разделяем фигуру на две части (на первой странице и на второй)
+    // Считаем, как много линий на одной странице
     while(curFigY/8 == row/8){row++;}
     
-    // if all on one page
+    // Если все линии на одной странице
     if(row == curFigY+8){
         for(col = 0; col < 8; col++){
             displayBuffer[(curFigY >> 3)*DISPLAY_WIDTH + curFigX+col] |= curFig[col];
@@ -212,28 +241,34 @@ void writeFigToField(){
         return;
     }
     
-    // write to first page
+    // Записываем на одну старницу
     for(col = 0; col < 8; col++){
         displayBuffer[(curFigY >> 3)*DISPLAY_WIDTH + curFigX+col] |= (curFig[col] << (8-(row - curFigY)));
     }
     
-    // write to second page
+    // Записываем на другую страницу
     for(col = 0; col < 8; col++){
         displayBuffer[(row >> 3)*DISPLAY_WIDTH + curFigX+col] |= (curFig[col] >> (row - curFigY));
     }
 }
 
-uint8_t isLost(){
-    uint8_t row;
-    for(row = 0 ; row < TETRIS_FIELD_WIDTH; row++){
+/* Проверям, проиграли ли мы или нет
+ *@retval: 1 - проиграли, 0 - нет*/
+uint8_t isLost(void)
+{
+    for(uint8_t row = 0 ; row < TETRIS_FIELD_WIDTH; row++){
         if(displayBuffer[(row/8)*DISPLAY_WIDTH] & (0x01 << (row%8))) return 1;
     }
     return 0;
 }
-void shiftAllDown(uint16_t lineNumber){
+
+/* Сдвигаем все фигуры на указанное число строк вниз
+ * lineNumber: колв-во строк, на которое надо сдвинуть все фигуры */
+void shiftAllDown(uint16_t lineNumber)
+{
     int col, newcol = lineNumber-1;
     for(col = lineNumber; col > 0; newcol--, col--){
-        // miss empty lines
+        // Пропускаем пустые строки
         while(displayBuffer[newcol] == 0x00 && displayBuffer[DISPLAY_WIDTH + newcol] == 0x00 && 
             (displayBuffer[2*DISPLAY_WIDTH + newcol]&0x0F) == 0x00){
                 newcol--;
@@ -256,15 +291,17 @@ void shiftAllDown(uint16_t lineNumber){
     displayBuffer[2*DISPLAY_WIDTH + col] = displayBuffer[2*DISPLAY_WIDTH + col] & 0xF0;
 }
 
-void checkAndShiftLines(){
-
+/* Проверяем и сдвигаем все линии поля */
+void checkAndShiftLines(void)
+{
     uint16_t col, emptyLineCount = 0, firstLine = 0;
-    // delete full lines
+    // Удаляем полную линию тетриса
     for(col = DISPLAY_WIDTH-1; col > 0; col--){
-        // if the line is full
+        // Если линия полная
         if(displayBuffer[col] == 0xFF && displayBuffer[DISPLAY_WIDTH + col] == 0xFF &&
             (displayBuffer[2*DISPLAY_WIDTH + col]&0x0F) == 0x0F){
-            // delete line
+            
+			// Удаляем линию
             displayBuffer[col] = 0x00;
             displayBuffer[DISPLAY_WIDTH + col] = 0x00;
             displayBuffer[2*DISPLAY_WIDTH + col] &= 0xF0;
@@ -282,7 +319,7 @@ void checkAndShiftLines(){
     if(emptyLineCount){
         shiftAllDown(firstLine);
         
-        // add score
+        // Увеличиваем счёт
         switch(emptyLineCount){
             case 2:
                 score += 100;
@@ -302,17 +339,19 @@ void checkAndShiftLines(){
     }
 }
 
-void updateScoreAndFigure(){
+/* Обновляем счёт и фигуру */
+void updateScoreAndFigure(void)
+{
     lcdStruct.byteIndex = DISPLAY_WIDTH*7;
     LCD_writeHorStringToBuffer(" Next");
     
-    // draw next figure
+    // Рисуем следующую фигуру
     uint8_t i;
     for(i = 0; i < 8; i++){
         displayBuffer[DISPLAY_WIDTH*5 + 9 + i] = FIGURES[nextFigType*8 + i];
     }
     
-    // draw score
+    // Рисуем счёт
     lcdStruct.byteIndex = DISPLAY_WIDTH*7+24;
     LCD_writeHorStringToBuffer("Score:");
     
@@ -321,7 +360,7 @@ void updateScoreAndFigure(){
     lcdStruct.byteIndex = DISPLAY_WIDTH*7+32 ;
     LCD_writeHorStringToBuffer(receiveString);
     
-    // draw lines
+    // Рисуем кол-во убранных линий
     lcdStruct.byteIndex = DISPLAY_WIDTH*7+48;
     LCD_writeHorStringToBuffer("Lines:");
     
@@ -330,25 +369,27 @@ void updateScoreAndFigure(){
     LCD_writeHorStringToBuffer(receiveString);
 }
 //
-//---move functions----------------
-void rotate(){
-    // if it is a cube
+//---Функции движения фигуры----------------
+/* Фращает фигуру */
+void rotate(void)
+{
+    // Если это куб, то ничего не меняется
     if(curFigType == 0) return;
     
-    // clear old figure
-    int x, y;
-    for(y = 0; y < 8; y++){
-        for(x = curFigX; x < curFigX+8; x++){
+    // Очищаем старую фигуру
+    for(int y = 0; y < 8; y++){
+        for(int x = curFigX; x < curFigX+8; x++){
             if(curFig[x - curFigX] & (1 << y)){
                 displayBuffer[((curFigY+y)/8)*DISPLAY_WIDTH + x] &= ~(1 << ((curFigY+y)%8));
             }
         }
     }
     
+	// Является ли фигура 3х3 и буфер для фигуры
     uint8_t is3x3 = 1, buffer[8] = {0x00};
     
-    // figure 3x3 or not
-    for(x = 0; x < 8; x++){
+    // Определяем, это фигура 3х3 или нет
+    for(int x = 0; x < 8; x++){
         if(curFig[x]&0xC0){
             is3x3 = 0;
             break;
@@ -359,21 +400,21 @@ void rotate(){
         is3x3 = 0;
     }
     
-    // write rotated fig to a buffer
+    // Записываем повернутую фигуру в буфер
     uint8_t maxRow = (is3x3 ? 6 : 8);
-    for(y = 0; y < maxRow; y++){
-        for(x = 0; x < maxRow; x++){
+    for(int y = 0; y < maxRow; y++){
+        for(int x = 0; x < maxRow; x++){
             buffer[x] |= (((curFig[y] >> (maxRow-1-x)) & 0x01) << y);
         }
     }
     
-    //---change y coordinate if we near the border----------
+    //---Меняем координату y, если мы рядом с границей ----------
     int temp = curFigY;
     
-    // change y coord if we near the left border
+    // Меняем координату y, если мы рядом с левой границей
     if((!is3x3 && curFigY > 12) || (is3x3 && curFigY > 14)){
-        for(y = 7; y > 3; y-=2){
-            for(x = 0; x < 8; x++){
+        for(int y = 7; y > 3; y-=2){
+            for(int x = 0; x < 8; x++){
                 if((buffer[x] >> y) & 0x01){
                     curFigY -= 2;
                     break;
@@ -383,10 +424,10 @@ void rotate(){
         }
     }
     
-    //change y coord if we near the rigth border
+    // Меняем координату y, если мы рядом с правой границей
     if(curFigY < 0){
-        for(y = 0; y < 8; y+=2){
-            for(x = 0; x < 8; x++){
+        for(int y = 0; y < 8; y+=2){
+            for(int x = 0; x < 8; x++){
                 if((buffer[x] >> y) & 0x01){
                     curFigY += 2;
                     break;
@@ -396,10 +437,9 @@ void rotate(){
         }
     }
     
-    //---check rotate-----------------------------------------
-    // can rotate?
-    for(y = 0; y < 8; y++){
-        for(x = 0; x < 8; x++){
+    //---Проверяем возможность повернуть фигуру-----------------------------------------
+    for(int y = 0; y < 8; y++){
+        for(int x = 0; x < 8; x++){
             if(((buffer[x] >> y) & 0x01) && 
                 ((displayBuffer[(curFigY+y)/8*DISPLAY_WIDTH + curFigX+x] >> (curFigY+y)%8) & 0x01)){
                     curFigY = temp;
@@ -409,9 +449,9 @@ void rotate(){
         }
     }
 
-    // check corner
-    for(y = 0; y < 8; y++){
-        for(x = 0; x < 8; x++){
+    // Проверяем углы
+    for(int y = 0; y < 8; y++){
+        for(int x = 0; x < 8; x++){
             if(((buffer[x] >> y) & 0x01) && 
                 (curFigY+y > TETRIS_FIELD_WIDTH-1 || curFigX+x > DISPLAY_WIDTH-1)){
                     curFigY = temp;
@@ -420,17 +460,20 @@ void rotate(){
         }
     }
     
-    //---write figure from buffer---------------------
-    for(x = 0; x < 8; x++){
+    // Записываем повернутую фигуру в буфер
+    for(int x = 0; x < 8; x++){
         curFig[x] = buffer[x];
     }
 }
 
-void shiftLeft(){
+/* Сдвигает фигуру влево */
+void shiftLeft(void)
+{
+	// Координаты и кол-во пустых строк
     int x, y, emptylines = 0;
     uint8_t empty = 1, possible = 1;
     
-    // clear old figure
+    // Очищаем старую фигуру
     for(y = 0; y < 8; y++){
         for(x = curFigX; x < curFigX+8; x++){
             if(curFig[x - curFigX] & (1 << y)){
@@ -439,7 +482,7 @@ void shiftLeft(){
         }
     }
     
-    // counting the number of empty lines
+    // Считаем кол-во свободных строк
     for(y = 7; y >= 0; y--){
         for(x = 0; x < 8; x++){
             if((curFig[x] >> y) & 0x01){
@@ -451,7 +494,7 @@ void shiftLeft(){
         emptylines++;
     }
     
-    // check if shifting possible
+    // Проверяем, возможен ли сдвиг
     if(curFigY-emptylines+8 != TETRIS_FIELD_WIDTH){
         for(y = 7; y >= 0; y--){
             for(x = curFigX+7; x >= curFigX; x--){
@@ -469,11 +512,15 @@ void shiftLeft(){
         }
     }
 }
-void shiftRight(){
+
+/* Сдвигает фигуру вправо */
+void shiftRight(void)
+{
+	// Координаты и кол-во пустых строк
     int x, y, emptylines = 0;
     uint8_t empty = 1, possible = 1;
     
-    // clear old figure
+    // Очищаем старую фигуру
     for(y = 0; y < 8; y++){
         for(x = curFigX; x < curFigX+8; x++){
             if(curFig[x - curFigX] & (1 << y)){
@@ -482,7 +529,7 @@ void shiftRight(){
         }
     }
     
-    // counting the number of empty lines
+    // Считаем кол-во свободных строк
     for(y = 0; y < 8; y++){
         for(x = 0; x < 8; x++){
             if((curFig[x] >> y) & 0x01){
@@ -494,7 +541,7 @@ void shiftRight(){
         emptylines++;
     }
     
-    // check if shifting possible
+    // Проверяем, возможен ли сдвиг
     if(curFigY+emptylines != 0){
         for(y = 0; y < 8; y++){
             for(x = curFigX+7; x >= curFigX; x--){
@@ -513,11 +560,15 @@ void shiftRight(){
     }
 }
 
-uint8_t shiftDown(){
+/* Сдвиг фигуры вниз 
+ * @retval: 0, если сдвиг успешен, 1, если фигура достигла конца */
+uint8_t shiftDown(void)
+{
+	// Координаты и кол-во пустых строк
+	int x, y;
     uint8_t empty = 1, possible = 1, emptylines = 0;
-    int x, y;
     
-    // counting the number of empty lines
+    // Считаем кол-во свободных строк
     for(x = 7; x >= 0; x--){
         if(curFig[x]){
             empty = 0;
@@ -527,7 +578,7 @@ uint8_t shiftDown(){
         emptylines++;
     }    
     
-    // clear old figure
+    // Очищаем старую фигуру
     for(y = 0; y < 8; y++){
         for(x = curFigX; x < curFigX+8; x++){
             if(curFig[x - curFigX] & (1 << y)){
@@ -536,7 +587,7 @@ uint8_t shiftDown(){
         }
     }
     
-    // can we shift figure down?
+    // Проверяем, возможен ли сдвиг
     for(y = 0; y < 8; y++){
         for(x = curFigX+7; x > curFigX; x--){
             if((curFig[x - curFigX] & (0x01 << y)) && (displayBuffer[((curFigY+y)/8)*DISPLAY_WIDTH + x+1] & (1 << (curFigY+y)%8))){
@@ -555,85 +606,101 @@ uint8_t shiftDown(){
     return 1;
 }
 
-void drawSongMenuTetris(){
-    lcdStruct.byteIndex = 30;
-    lcdStruct.writeStringToBuffer("Play music?");
-    lcdStruct.byteIndex = DISPLAY_WIDTH*2 + 30;
+/* Рисуем меню выбора музыки */
+void drawSongMenuTetris(void)
+{
+    lcdStruct.byteIndex = 20;
+    lcdStruct.writeStringToBuffer("Включить музыку?");
+    lcdStruct.byteIndex = DISPLAY_WIDTH*2 + 20;
     switch(isTetrisSong){
         case 0:
-            lcdStruct.writeStringToBuffer(">no  yes");
+            lcdStruct.writeStringToBuffer(">нет  да");
             break;
         case 1:
-            lcdStruct.writeStringToBuffer(" no >yes");
+            lcdStruct.writeStringToBuffer(" нет >да");
             break;
     }
     lcdStruct.displayFullUpdate();
 }
-void songSelectTetris(){
+
+/* Логика работы меню включения мелодии */
+void songSelectTetris(void)
+{
+	// Очищаем буфер
     memset(displayBuffer, 0x00, LCD_BUFFER_LENGTH);
     isTetrisSong = 0;
+	
+	// Рисуем меню включения мелодии
     drawSongMenuTetris();
     
-    while(1){
+    while(1)
+	{
 		// Анализ ИК-протокола и выполнение команды
 		irProtocolAnalyze();
-		
-        if(isButtonPressed(BUTTON_LEFT)){
-            delayUs(10000);
+		 
+        if(isButtonPressed(BUTTON_LEFT)) {
+            delayUs(buttonDelayUs);
             isTetrisSong -= (isTetrisSong == 0 ? 0 : 1);
             drawSongMenuTetris();
         }
+		
         if(isButtonPressed(BUTTON_RIGHT)){
-            delayUs(10000);
+            delayUs(buttonDelayUs);
             isTetrisSong += (isTetrisSong == 1 ? 0 : 1);
             drawSongMenuTetris();
         }
+		
         if(isButtonPressed(BUTTON_SELECT)){
-            delayUs(10000);
+            delayUs(buttonDelayUs);
             lcdStruct.clearOrFillDisplay(CLEAR);
             return;
         }
-        delayUs(100000);
     }
 }
 
-//
-//---Main function----------------
-void startTetrisGame(){
+/* Главная функция игры */
+void startTetrisGame(void)
+{
+	// Включение музыки и инициализация игры
     songSelectTetris();
     gameInit();
     
+	// Включение мелодии
     if(isTetrisSong){
         playBackgroundSong(SPEAKER_TYPE_BIG, TetrisGameSong, TetrisGameSong_Beats, sizeof(TetrisGameSong)/2, 140,1);
     }
     
+	// Сдвигается ли фигура вниз и поворачивается ли она
     uint8_t isShiftDown = 0, isShiftOrRotate = 0;
-    while(1){
+    while(1)
+	{
 		// Анализ ИК-протокола и выполнение команды
 		irProtocolAnalyze();
 		
-        // update delayUs
-        curDelay = 100000 - score*10;
+        // Обновляем задержку с увеличением счёта
+		if(curDelay > 0) {
+			curDelay = 30000 - score*10;
+        } else {
+			curDelay = 0;
+		}
         
-        if(curDelay < 0) curDelay = 0;
-        
-        if(isButtonPressed(BUTTON_TOP)){
+		// Сдвиг фигуры вправо
+        if(isButtonPressed(BUTTON_TOP)) {
+			delayUs(40000);
             shiftRight();
             isShiftOrRotate = 1;
-            if(curDelay <= 50000){
-                delayUs(90000);
-            }
         }
         
-        if(isButtonPressed(BUTTON_BOTOOM)){
+		// Сдвиг фигуры влево
+        if(isButtonPressed(BUTTON_BOTOOM)) {
+			delayUs(40000);
             shiftLeft();
             isShiftOrRotate = 1;
-            if(curDelay <= 50000){
-                delayUs(90000);
-            }
         }
         
-        if(isButtonPressed(BUTTON_LEFT)){
+		// Поворот фигуры
+        if(isButtonPressed(BUTTON_LEFT)) {
+			delayUs(20000);
             rotate();
             isShiftOrRotate = 1;
             if(curDelay <= 50000){
@@ -641,7 +708,7 @@ void startTetrisGame(){
             }
         }
         
-        // update display if fig rotate or shift
+        // Обновление дисплея, если фигура повернута или сдвинута
         if(isShiftOrRotate){
             writeFigToField();
         
@@ -658,31 +725,32 @@ void startTetrisGame(){
             isShiftOrRotate = 0;
         }
         
-        // normal or fast move down
+        // Нормальный или быстрый сдвиг фигуры
         do{
-            // shift figure down
+            // Сдвиг фигуры вниз
             isShiftDown = shiftDown();
             writeFigToField();
             
             if(!isShiftDown){
-                // check game end
+                // Проверяем, что игра ещё не закончена
                 if(isLost()){
                     gameState = GAME_LOSE;
                     break;
                 }
                 
-                // check lines
+                // Проверяем линии
                 checkAndShiftLines();
                 
-                // generate and write new figure
+                // Генерируем и записываем новую фигуру
                 genNextFigType();
                 writeFigToField();
                 
+				// Обновляем счёт и отрисовываем на дисплее
                 updateScoreAndFigure();
                 lcdStruct.displayFullUpdate();
             }
             
-            // draw player field
+            // Отрисовка экрана
             LCD_DrawPageFromBuffer(PAGE_2);
             if(curFigY <= 8){
                 LCD_DrawPageFromBuffer(PAGE_1);
@@ -691,7 +759,7 @@ void startTetrisGame(){
             }
         } while(isButtonPressed(BUTTON_RIGHT) && gameState != GAME_LOSE);
         
-        // exit the game
+        // Выход из игры
         #ifdef BUTTON_BACK
             if(isButtonPressed(BUTTON_BACK)){
                 songStop();
@@ -701,9 +769,9 @@ void startTetrisGame(){
             }
         #endif
         
-        // pause
+        // Пауза
         #ifdef BUTTON_SELECT
-            if(isButtonPressed(BUTTON_SELECT)){
+            if(isButtonPressed(BUTTON_SELECT)) {
                 lcdStruct.byteIndex = DISPLAY_WIDTH*8-9;
                 LCD_writeHorStringToBuffer("Pause");
                 lcdStruct.displayFullUpdate();
@@ -721,7 +789,7 @@ void startTetrisGame(){
             }
         #endif
             
-        //-----game end---------
+        //-----Конец игры---------
         if(score >= winScore){ gameState = GAME_WIN;}
         
         if(gameState != GAME_CONTINUE){
@@ -735,5 +803,7 @@ void startTetrisGame(){
             lcdStruct.clearOrFillDisplay(CLEAR);
             return;
         }
+		
+		delayUs(curDelay);
     }
 }

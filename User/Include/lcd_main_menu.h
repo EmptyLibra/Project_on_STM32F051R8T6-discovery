@@ -14,7 +14,7 @@
 #include "speaker.h"             /* Библиотека динамика для проигрывания музыки */
 #include "game_2048.h"           /* Библиотека с игрой 2048 */
 #include "game_tetris.h"         /* Библиотека с игрой тетрис */
-#include "snake.h"               /* Библиотека с игрой змейка */
+#include "game_snake.h"          /* Библиотека с игрой змейка */
 #include "my_uart.h"             /* Библиотека для работы с UART */
 #include <string.h>              /* Библиотека для функции memset */ 
 
